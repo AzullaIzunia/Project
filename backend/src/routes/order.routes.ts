@@ -1,0 +1,217 @@
+import { Router } from "express"
+import { prisma } from "../lib/prisma"
+import { authenticate, requireAdmin } from "../middleware/auth.middleware"
+import { allowedOrderStatus } from "../constants/orderStatus"
+
+const router = Router()
+
+//Admin: Get All Orders
+router.get("/", authenticate, requireAdmin, async (req, res) => {
+  try {
+    const orders = await prisma.order.findMany({
+      orderBy: { createOrder: "desc" }, // หรือ createdAt ถ้าใช้ชื่อนั้น
+      include: {
+        user: {
+          select: {
+            user_id: true,
+            email: true,
+            name: true,
+            surname: true
+          }
+        },
+        orderItems: {
+          include: {
+            product: true,
+            fateResult: true
+          }
+        }
+      }
+    })
+
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      latestOrderStatus:
+        order.order_status[order.order_status.length - 1]
+    }))
+
+    res.json(formattedOrders)
+
+  } catch (error) {
+    console.error("ADMIN GET ORDERS ERROR:", error)
+    res.status(500).json({ error: "Cannot fetch orders" })
+  }
+})
+
+//Admin: Update Order Status
+router.post("/:id/status", authenticate, requireAdmin, async (req, res) => {
+  try {
+    const orderId = Number(req.params.id)
+    const { status } = req.body
+
+    if (!status) {
+      return res.status(400).json({ error: "Status is required" })
+    }
+
+    if (!allowedOrderStatus.includes(status)) {
+      return res.status(400).json({
+        error: `Invalid status. Allowed: ${allowedOrderStatus.join(", ")}`
+      })
+    }
+
+    const order = await prisma.order.update({
+      where: { order_id: orderId },
+      data: {
+        order_status: {
+          push: status
+        }
+      }
+    })
+
+    res.json({
+      message: "Order status updated",
+      order_status: order.order_status
+    })
+
+  } catch (error) {
+    console.error("UPDATE ORDER STATUS ERROR:", error)
+    res.status(500).json({ error: "Cannot update status" })
+  }
+})
+
+
+// 📦 Order Detail
+router.get("/:id", authenticate, async (req: any, res) => {
+  try {
+    const orderId = Number(req.params.id)
+    const userId = req.user.user_id
+    const isAdmin = req.user.isAdmin
+
+    const order = await prisma.order.findUnique({
+      where: { order_id: orderId },
+      include: {
+        orderItems: {
+          include: {
+            product: true,
+            fateResult: true
+          }
+        },
+        user: {
+          select: {
+            user_id: true,
+            email: true,
+            name: true,
+            surname: true
+          }
+        }
+      }
+    })
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" })
+    }
+
+    // Only allow access if user is admin or owner of the order
+    if (!isAdmin && order.user_id !== userId) {
+      return res.status(403).json({ error: "Access denied" })
+    }
+
+    const latestOrderStatus =
+      order.order_status[order.order_status.length - 1]
+
+    res.json({
+      ...order,
+      latestOrderStatus
+    })
+
+  } catch (error) {
+    res.status(500).json({ error: "Cannot fetch order" })
+  }
+})
+
+type OrderItemInput = {
+  product_id: number
+  quantity: number
+  price: number
+}
+
+// 🛒 Create Order
+router.post("/", authenticate, async (req: any, res) => {
+  try {
+    
+    const userId = req.user.user_id
+    const { items } = req.body
+
+    if (!items || !Array.isArray(items)) {
+      return res.status(400).json({ error: "Invalid items format" })
+    }
+
+    let totalPrice = 0
+    const orderItemsData: OrderItemInput[] = []
+
+    for (const item of items) {
+      const product = await prisma.product.findUnique({
+        where: { product_id: item.product_id }
+      })
+
+      if (!product || !product.isActive) {
+        return res.status(400).json({
+          error: `Product ${item.product_id} not available`
+        })
+      }
+
+      if (product.stock_quantity < item.quantity) {
+        return res.status(400).json({
+          error: `Not enough stock for ${product.product_name}`
+        })
+      }
+
+      totalPrice += product.price * item.quantity
+
+      orderItemsData.push({
+        product_id: product.product_id,
+        quantity: item.quantity,
+        price: product.price
+      })
+    }
+
+    const order = await prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          user_id: userId,
+          total_price: totalPrice
+        }
+      })
+
+      for (const item of orderItemsData) {
+        await tx.orderItem.create({
+          data: {
+            order_id: newOrder.order_id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            price: item.price
+          }
+        })
+
+        await tx.product.update({
+          where: { product_id: item.product_id },
+          data: {
+            stock_quantity: {
+              decrement: item.quantity
+            }
+          }
+        })
+      }
+
+      return newOrder
+    })
+
+    res.status(201).json(order)
+
+    } catch (error) {
+  console.error("ORDER ERROR:", error)
+  res.status(500).json({ error: "Order failed" })
+    }
+})
+
+
+export default router
