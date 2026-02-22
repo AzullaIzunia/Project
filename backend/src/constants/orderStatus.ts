@@ -2,7 +2,8 @@ export const allowedOrderStatus = [
   "paid",
   "preparing",
   "shipping",
-  "completed"
+  "completed", 
+  "cancelled"
 ] as const
 
 export type OrderStatusType =

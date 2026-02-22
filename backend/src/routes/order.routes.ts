@@ -220,6 +220,76 @@ router.post("/", authenticate, async (req: any, res) => {
   }
 })
 
+/* =======================================================
+   User - Cancel Order
+======================================================= */
+router.post("/:id/cancel", authenticate, async (req: any, res) => {
+  try {
+    const orderId = Number(req.params.id)
+    const userId = req.user.user_id
+    const isAdmin = req.user.isAdmin
+
+    const result = await prisma.$transaction(async (tx) => {
+
+      const order = await tx.order.findUnique({
+        where: { order_id: orderId },
+        include: { orderItems: true }
+      })
+
+      if (!order) {
+        throw new Error("Order not found")
+      }
+
+      //Owner check
+      if (!isAdmin && order.user_id !== userId) {
+        throw new Error("Access denied")
+      }
+
+      const currentStatus =
+        order.order_status[order.order_status.length - 1]
+
+      //ไม่ให้ cancel ถ้าเกิน paid แล้ว
+      if (currentStatus !== "paid") {
+        throw new Error(
+          `Cannot cancel order with status ${currentStatus}`
+        )
+      }
+
+      // 1️⃣ Restore stock
+      for (const item of order.orderItems) {
+        await tx.product.update({
+          where: { product_id: item.product_id },
+          data: {
+            stock_quantity: {
+              increment: item.quantity
+            }
+          }
+        })
+      }
+
+      //Push cancelled
+      const updatedOrder = await tx.order.update({
+        where: { order_id: orderId },
+        data: {
+          order_status: {
+            push: "cancelled"
+          }
+        }
+      })
+
+      return updatedOrder
+    })
+
+    res.json({
+      message: "Order cancelled successfully",
+      order_status: result.order_status
+    })
+
+  } catch (error: any) {
+    console.error("CANCEL ORDER ERROR:", error.message)
+    res.status(400).json({ error: error.message })
+  }
+})
 
 /* =======================================================
   Admin - Update Order Status (Workflow Guard)
