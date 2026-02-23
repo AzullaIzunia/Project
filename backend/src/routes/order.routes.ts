@@ -76,7 +76,7 @@ router.get("/", authenticate, requireAdmin, async (req, res) => {
 
 
 /* =======================================================
-  User - My Orders  (ต้องมาก่อน /:id)
+  User - My Orders  
 ======================================================= */
 router.get("/my", authenticate, async (req: any, res) => {
   try {
@@ -378,6 +378,56 @@ router.post(
     }
   }
 )
+
+/* =======================================================
+   Admin - Approve Payment
+======================================================= */
+router.post("/:id/approve", authenticate, requireAdmin, async (req, res) => {
+  try {
+    const orderId = Number(req.params.id)
+
+    const order = await prisma.order.findUnique({
+      where: { order_id: orderId }
+    })
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" })
+    }
+
+    if (!order.payment_bill) {
+      return res.status(400).json({
+        error: "No payment slip uploaded"
+      })
+    }
+
+    const currentStatus =
+      order.order_status[order.order_status.length - 1]
+
+    if (currentStatus !== "paid") {
+      return res.status(400).json({
+        error: `Cannot approve order with status ${currentStatus}`
+      })
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { order_id: orderId },
+      data: {
+        order_status: {
+          push: "preparing"
+        }
+      }
+    })
+
+    res.json({
+      message: "Payment approved. Order is now preparing.",
+      order_status: updatedOrder.order_status
+    })
+
+  } catch (error) {
+    console.error("APPROVE PAYMENT ERROR:", error)
+    res.status(500).json({ error: "Cannot approve payment" })
+  }
+})
 
 /* =======================================================
   Admin - Update Order Status (Workflow Guard)
