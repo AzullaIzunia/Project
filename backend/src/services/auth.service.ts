@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import { generateOTP } from "../lib/otp"
 
 
 // Service function to register a new user
@@ -83,5 +84,56 @@ export const loginUser = async (
     }
   }
 }
+// Service function to handle forgot password
+export async function forgotPassword(email: string) {
 
+  const user = await prisma.user.findUnique({
+    where: { email }
+  })
+
+  if (!user) {
+    throw new Error("User not found")
+  }
+
+  const otp = generateOTP()
+
+  const token = jwt.sign(
+    { email, otp },
+    process.env.JWT_SECRET!,
+    { expiresIn: "5m" }
+  )
+
+  console.log("OTP:", otp)
+
+  return {
+    token
+  }
+}
+
+// Service function to verify OTP
+export function verifyOTP(token: string, otp: string) {
+
+  const decoded: any = jwt.verify(token, process.env.JWT_SECRET!)
+
+  if (decoded.otp !== otp) {
+    throw new Error("Invalid OTP")
+  }
+
+  return decoded.email
+}
+
+// Service function to reset password
+export async function resetPassword(token: string, newPassword: string) {
+
+  const decoded: any = jwt.verify(token, process.env.JWT_SECRET!)
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+  await prisma.user.update({
+    where: { email: decoded.email },
+    data: { password: hashedPassword }
+  })
+
+  return { message: "Password updated" }
+}
 
