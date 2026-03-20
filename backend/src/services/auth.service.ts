@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 import { generateOTP } from "../lib/otp"
+import { sendOTPEmail } from "./mail.service"
 
 
 // Service function to register a new user
@@ -84,7 +85,7 @@ export const loginUser = async (
     }
   }
 }
-// Service function to handle forgot password
+// Service function to handle forgot password and send OTP email
 export async function forgotPassword(email: string) {
 
   const user = await prisma.user.findUnique({
@@ -103,11 +104,11 @@ export async function forgotPassword(email: string) {
     { expiresIn: "5m" }
   )
 
-  console.log("OTP:", otp)
+  console.log("OTP:", otp) // debug
 
-  return {
-    token
-  }
+  await sendOTPEmail(email, otp) // ส่ง email จริง
+
+  return { token }
 }
 
 // Service function to verify OTP
