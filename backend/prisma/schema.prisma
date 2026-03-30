@@ -24,6 +24,7 @@ model User {
   // relations
   orders            Order[]
   fateResults      FateResult[]
+  drawSessions     DrawSession[]
   admin            Admin?
 }
 
@@ -108,11 +109,25 @@ model FateResult {
   result            String
   createdAt         DateTime @default(now())
 
+  // Additional fields for statistics
+  lowest_stats Json
+  all_stats    Json
+
   // relations
   user             User   @relation(fields: [user_id], references: [user_id])
   witch             Witch  @relation(fields: [witch_id], references: [witch_id])
   fate             Fate   @relation(fields: [stat_result], references: [stat_name])
   orderItem        OrderItem?
+}
+
+model DrawSession {
+  session_id   Int      @id @default(autoincrement())
+  user_id      Int
+  witch_id     Int
+  choices      Json
+  createdAt    DateTime @default(now())
+
+  user         User @relation(fields: [user_id], references: [user_id])
 }
 
 model Admin {

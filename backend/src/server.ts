@@ -10,6 +10,7 @@ import adminRoutes from "./routes/admin.routes"
 import productRoutes from "./routes/product.routes"
 import orderRoutes from "./routes/order.routes"
 import orderItemRoutes from "./routes/orderItem.routes"
+import fateRoutes from "./routes/fate.routes"
 
 
 
@@ -31,6 +32,7 @@ app.use("/api/products", productRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/order-items", orderItemRoutes)
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")))
+app.use("/api/fate", fateRoutes)
 
 const PORT = process.env.PORT || 5001
 
