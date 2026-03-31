@@ -34,6 +34,70 @@ const upload = multer({
   }
 })
 
+/* =======================================================
+   Fake Credit Card Payment
+======================================================= */
+router.post("/:id/pay", authenticate, async (req: any, res) => {
+  try {
+    const orderId = Number(req.params.id)
+    const userId = req.user.user_id
+
+    const order = await prisma.order.findUnique({
+      where: { order_id: orderId }
+    })
+
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" })
+    }
+
+    if (order.user_id !== userId) {
+      return res.status(403).json({ error: "Not your order" })
+    }
+
+    // ต้องเป็น credit card เท่านั้น
+    if (order.payment_method !== "credit_card") {
+      return res.status(400).json({
+        error: "This order is not credit card payment"
+      })
+    }
+
+    const currentStatus =
+      order.order_status[order.order_status.length - 1]
+
+    if (currentStatus !== "paid") {
+      return res.status(400).json({
+        error: "Order already processed"
+      })
+    }
+
+    // 💳 FAKE SUCCESS
+    const updated = await prisma.order.update({
+      where: { order_id: orderId },
+      data: {
+        order_status: {
+          push: "preparing"
+        }
+      }
+    })
+
+    res.json({
+      message: "Payment success (fake)",
+      order_status: updated.order_status
+    })
+
+  } catch (error) {
+    console.error("PAY ERROR:", error)
+    res.status(500).json({ error: "Payment failed" })
+  }
+
+  const success = Math.random() > 0.2
+
+if (!success) {
+  return res.status(400).json({
+    error: "Card declined (fake)"
+  })
+}
+})
 
 /* =======================================================
   Admin - Get All Orders
@@ -176,7 +240,7 @@ type OrderItemInput = {
 router.post("/", authenticate, async (req: any, res) => {
   try {
     const userId = req.user.user_id
-    const { items } = req.body
+    const { items, payment_method } = req.body
 
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({ error: "Invalid items format" })
@@ -215,7 +279,8 @@ router.post("/", authenticate, async (req: any, res) => {
       const newOrder = await tx.order.create({
         data: {
           user_id: userId,
-          total_price: totalPrice
+          total_price: totalPrice,
+          payment_method: payment_method || "promptpay"
         }
       })
 
