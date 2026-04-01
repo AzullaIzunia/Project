@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Core palette — deep navy + vivid violet + gold accent */
+  --background: #0d0b1a;
+  --foreground: #e8e0f5;
+
+  --primary: #6d28d9;
+  --primary-foreground: #f3eeff;
+
+  --secondary: #1e1640;
+  --secondary-foreground: #c4b5fd;
+
+  --accent: #a855f7;
+  --accent-foreground: #f9f0ff;
+
+  --muted: #1a1530;
+  --muted-foreground: #8b7cb3;
+
+  --card: #130f2a;
+  --card-foreground: #e8e0f5;
+
+  --border: rgba(109, 40, 217, 0.35);
+  --input: #1e1640;
+  --ring: #7c3aed;
+
+  --gold: #d4a843;
+  --gold-muted: #8a6820;
+
+  --radius: 0.75rem;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), sans-serif;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 3px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(109, 40, 217, 0.4);
+  color: var(--foreground);
+}
+
+/* Mystical card base */
+.mystic-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+}
+
+.mystic-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(109, 40, 217, 0.12) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Gold shimmer text */
+.gold-text {
+  background: linear-gradient(
+    90deg,
+    var(--gold-muted) 0%,
+    var(--gold) 30%,
+    #f5e09a 50%,
+    var(--gold) 70%,
+    var(--gold-muted) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* Glow button */
+.glow-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.glow-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.glow-btn:hover {
+  box-shadow: 0 0 20px rgba(109, 40, 217, 0.5), 0 0 40px rgba(168, 85, 247, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Star particle decoration */
+.star-bg {
+  background-image: 
+    radial-gradient(1px 1px at 20% 30%, rgba(212, 168, 67, 0.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 15%, rgba(168, 85, 247, 0.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 60%, rgba(212, 168, 67, 0.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 10% 70%, rgba(168, 85, 247, 0.3) 0%, transparent 100%),
+    radial-gradient(2px 2px at 50% 45%, rgba(255, 255, 255, 0.15) 0%, transparent 100%);
+}
+
+/* Input styles */
+.mystic-input {
+  background: var(--input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--foreground);
+  padding: 0.625rem 1rem;
+  width: 100%;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  font-family: var(--font-inter), sans-serif;
+}
+
+.mystic-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(109, 40, 217, 0.25);
+}
+
+.mystic-input::placeholder {
+  color: var(--muted-foreground);
+}
+
+/* Badge */
+.mystic-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
