@@ -8,7 +8,7 @@ interface CardProps {
 
 export function Card({ className, children, glow }: CardProps) {
   return (
-    <div className={cn("mystic-card", glow && "animate-pulse-glow", className)}>
+    <div className={cn("mystic-card rounded-[1.75rem]", glow && "animate-pulse-glow", className)}>
       {children}
     </div>
   )
@@ -42,4 +42,10 @@ export function CardFooter({
   children: React.ReactNode
 }) {
   return <div className={cn("px-6 pb-6 pt-4 border-t border-border", className)}>{children}</div>
+}
+
+export function CardContent({ className, ...props }: any) {
+  return (
+    <div className={`p-6 ${className}`} {...props} />
+  )
 }

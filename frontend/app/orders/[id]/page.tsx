@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { API_BASE, apiUrl } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 type OrderDetail = {
   order_id: number
@@ -51,8 +53,8 @@ export default function OrderDetailPage() {
     try {
       const res = await fetch(apiUrl(`/api/orders/${id}`), {
         headers: {
-          Authorization: `Bearer ${authToken}`
-        }
+          Authorization: `Bearer ${authToken}`,
+        },
       })
 
       const data = await res.json()
@@ -87,8 +89,8 @@ export default function OrderDetailPage() {
     const res = await fetch(apiUrl(`/api/orders/${order.order_id}/cancel`), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     const data = await res.json()
@@ -110,9 +112,9 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <p>กำลังโหลดรายละเอียดออเดอร์...</p>
+      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+          กำลังโหลดรายละเอียดออเดอร์...
         </div>
       </main>
     )
@@ -120,12 +122,14 @@ export default function OrderDetailPage() {
 
   if (!order) {
     return (
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <p style={errorStyle}>ไม่พบออเดอร์นี้</p>
-          <Link href="/orders" style={linkStyle}>
-            กลับไปหน้ารายการออเดอร์
-          </Link>
+      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-border bg-card/70 p-10 text-center">
+          <div className="text-red-300">ไม่พบออเดอร์นี้</div>
+          <div className="mt-5">
+            <Link href="/orders">
+              <Button>กลับไปหน้ารายการออเดอร์</Button>
+            </Link>
+          </div>
         </div>
       </main>
     )
@@ -135,88 +139,101 @@ export default function OrderDetailPage() {
   const canCancel = order.latestOrderStatus === "paid"
 
   return (
-    <main style={pageStyle}>
-      <div style={shellStyle}>
-        <Link href="/orders" style={linkStyle}>
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-5xl">
+        <Link href="/orders" className="text-sm text-muted-foreground no-underline hover:text-foreground">
           ← กลับไปหน้ารายการออเดอร์
         </Link>
 
-        <section style={{ ...cardStyle, marginTop: 16 }}>
-          <div style={topRowStyle}>
+        <section className="mt-4 rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p style={eyebrowStyle}>ORDER DETAIL</p>
-              <h1 style={{ margin: "8px 0 10px", fontSize: 38 }}>Order #{order.order_id}</h1>
-              <p style={copyStyle}>
+              <div className="text-xs tracking-[0.18em] text-gold">ORDER DETAIL</div>
+              <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
+                Order #{order.order_id}
+              </h1>
+              <p className="mt-3 text-muted-foreground">
                 {new Date(order.createOrder).toLocaleString()} • {order.user.name} {order.user.surname}
               </p>
             </div>
-            <span style={badgeStyle}>{order.latestOrderStatus}</span>
+            <StatusBadge status={order.latestOrderStatus} />
           </div>
 
-          {error ? <p style={errorStyle}>{error}</p> : null}
-          {notice ? <p style={noticeStyle}>{notice}</p> : null}
+          {error ? (
+            <div className="mt-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          ) : null}
 
-          <div style={summaryGridStyle}>
+          {notice ? (
+            <div className="mt-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+              {notice}
+            </div>
+          ) : null}
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
             <InfoBlock label="Payment method" value={order.payment_method.replace("_", " ")} />
             <InfoBlock label="Total price" value={`${order.total_price} THB`} />
             <InfoBlock label="Customer email" value={order.user.email} />
           </div>
 
-          <div style={actionRowStyle}>
+          <div className="mt-6 flex flex-wrap gap-3">
             {canContinuePayment ? (
-              <button type="button" onClick={goToPayment} style={primaryButtonStyle}>
-                ไปหน้าชำระเงิน
-              </button>
+              <Button onClick={goToPayment}>ไปหน้าชำระเงิน</Button>
             ) : null}
-
             {canCancel ? (
-              <button type="button" onClick={cancelOrder} style={dangerButtonStyle}>
+              <Button variant="danger" onClick={cancelOrder}>
                 ยกเลิกออเดอร์
-              </button>
+              </Button>
             ) : null}
-
             {order.payment_bill ? (
-              <a
-                href={`${API_BASE}${order.payment_bill}`}
-                target="_blank"
-                rel="noreferrer"
-                style={secondaryLinkStyle}
-              >
-                ดูสลิปที่อัปโหลด
+              <a href={`${API_BASE}${order.payment_bill}`} target="_blank" rel="noreferrer">
+                <Button variant="ghost">ดูสลิปที่อัปโหลด</Button>
               </a>
             ) : null}
           </div>
         </section>
 
-        <section style={{ ...cardStyle, marginTop: 18 }}>
-          <h2 style={sectionTitleStyle}>Status Timeline</h2>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 14 }}>
+        <section className="mt-5 rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+          <div className="text-xs tracking-[0.18em] text-gold">TIMELINE</div>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">Status Timeline</h2>
+          <div className="mt-5 flex flex-wrap gap-2">
             {order.order_status.map((status, index) => (
-              <span key={`${status}-${index}`} style={timelineChipStyle}>
+              <span
+                key={`${status}-${index}`}
+                className="rounded-full border border-border bg-background/40 px-3 py-1 text-sm text-muted-foreground"
+              >
                 {index + 1}. {status}
               </span>
             ))}
           </div>
         </section>
 
-        <section style={{ ...cardStyle, marginTop: 18 }}>
-          <h2 style={sectionTitleStyle}>Items</h2>
-          <div style={{ display: "grid", gap: 14, marginTop: 14 }}>
-            {order.orderItems.map(item => (
-              <article key={item.orderItem_id} style={itemCardStyle}>
-                <div style={itemTitleStyle}>{item.product.product_name}</div>
-                <div style={metaStyle}>
+        <section className="mt-5 rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+          <div className="text-xs tracking-[0.18em] text-gold">ITEMS</div>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">รายการสินค้า</h2>
+          <div className="mt-5 grid gap-4">
+            {order.orderItems.map((item) => (
+              <article
+                key={item.orderItem_id}
+                className="rounded-[1.5rem] border border-border bg-background/40 p-5"
+              >
+                <div className="text-lg font-semibold text-foreground">{item.product.product_name}</div>
+                <div className="mt-2 text-sm text-muted-foreground">
                   {item.product.category} • {item.price} THB x {item.quantity}
                 </div>
                 {item.product.description ? (
-                  <p style={{ ...copyStyle, marginTop: 10 }}>{item.product.description}</p>
+                  <p className="mt-4 text-sm leading-7 text-muted-foreground">{item.product.description}</p>
                 ) : null}
                 {item.tracking_status?.length ? (
-                  <div style={{ marginTop: 10 }}>
-                    <div style={miniLabelStyle}>Tracking</div>
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+                  <div className="mt-4">
+                    <div className="text-xs tracking-[0.16em] text-gold">TRACKING</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
                       {item.tracking_status.map((status, index) => (
-                        <span key={`${status}-${index}`} style={smallChipStyle}>
+                        <span
+                          key={`${status}-${index}`}
+                          className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
+                        >
                           {status}
                         </span>
                       ))}
@@ -224,9 +241,9 @@ export default function OrderDetailPage() {
                   </div>
                 ) : null}
                 {item.fateResult ? (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={miniLabelStyle}>Linked fate result</div>
-                    <p style={{ ...copyStyle, marginTop: 6 }}>
+                  <div className="mt-4">
+                    <div className="text-xs tracking-[0.16em] text-gold">LINKED FATE RESULT</div>
+                    <p className="mt-2 text-sm leading-7 text-muted-foreground">
                       {item.fateResult.drawn_stat}: {item.fateResult.result}
                     </p>
                   </div>
@@ -242,170 +259,9 @@ export default function OrderDetailPage() {
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div style={miniLabelStyle}>{label}</div>
-      <div style={{ marginTop: 6, fontSize: 18, fontWeight: 700 }}>{value}</div>
+    <div className="rounded-2xl border border-border bg-background/40 p-4">
+      <div className="text-xs tracking-[0.16em] text-gold">{label}</div>
+      <div className="mt-2 text-lg font-semibold text-foreground break-words">{value}</div>
     </div>
   )
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "32px 20px 60px",
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-
-const shellStyle = {
-  maxWidth: 980,
-  margin: "0 auto"
-} as const
-
-const cardStyle = {
-  background: "rgba(255,255,255,0.82)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-
-const topRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 14,
-  alignItems: "flex-start",
-  flexWrap: "wrap" as const
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.16em",
-  color: "#9b7458"
-} as const
-
-const copyStyle = {
-  margin: 0,
-  color: "#6e5848",
-  lineHeight: 1.7
-} as const
-
-const linkStyle = {
-  color: "#7b5234",
-  textDecoration: "none"
-} as const
-
-const secondaryLinkStyle = {
-  textDecoration: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "#fffaf4",
-  border: "1px solid #d8c1b0",
-  color: "#5e4637",
-  fontSize: 14
-} as const
-
-const badgeStyle = {
-  display: "inline-block",
-  padding: "8px 12px",
-  borderRadius: 999,
-  background: "#f2e0d4",
-  color: "#5c4535",
-  textTransform: "capitalize" as const
-} as const
-
-const summaryGridStyle = {
-  display: "grid",
-  gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  marginTop: 20
-} as const
-
-const actionRowStyle = {
-  display: "flex",
-  gap: 10,
-  marginTop: 18,
-  flexWrap: "wrap" as const
-} as const
-
-const primaryButtonStyle = {
-  border: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const dangerButtonStyle = {
-  border: "1px solid #eabdb7",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "#fff0ee",
-  color: "#a03e31",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const sectionTitleStyle = {
-  margin: 0,
-  fontSize: 28
-} as const
-
-const timelineChipStyle = {
-  padding: "10px 14px",
-  borderRadius: 999,
-  background: "#fff8f2",
-  border: "1px solid #e8d7ca",
-  color: "#5f493a"
-} as const
-
-const itemCardStyle = {
-  background: "#fff9f4",
-  border: "1px solid #ead7c8",
-  borderRadius: 20,
-  padding: 18
-} as const
-
-const itemTitleStyle = {
-  fontSize: 22,
-  fontWeight: 700
-} as const
-
-const metaStyle = {
-  marginTop: 6,
-  color: "#7c6657",
-  fontSize: 14
-} as const
-
-const miniLabelStyle = {
-  color: "#8b705d",
-  fontSize: 12,
-  letterSpacing: "0.06em"
-} as const
-
-const smallChipStyle = {
-  padding: "8px 12px",
-  borderRadius: 999,
-  background: "#f1e3d8",
-  color: "#684d3b",
-  fontSize: 13
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginTop: 16
-} as const
-
-const noticeStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#edf7ef",
-  color: "#146c2e",
-  marginTop: 16
-} as const

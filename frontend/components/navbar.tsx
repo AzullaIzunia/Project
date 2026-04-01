@@ -2,84 +2,75 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
+import { Menu, ShoppingBag, Sparkles, User, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import {
-  ShoppingCart,
-  User,
-  Star,
-  BookOpen,
-  LogOut,
-  LayoutDashboard,
-  Menu,
-  X,
-  Sparkles,
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { getToken, removeToken, isAdmin } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import { isAdmin, removeToken } from "@/lib/auth"
 import { getCartCount } from "@/lib/cart"
+import { cn } from "@/lib/utils"
+
+const mainLinks = [
+  { href: "/draw", label: "ดูดวง" },
+  { href: "/shop", label: "ร้านค้า" },
+  { href: "/orders", label: "คำสั่งซื้อ" },
+  { href: "/fate-history", label: "ประวัติดวง" },
+]
 
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
-  const [token, setToken] = useState<string | null>(null)
+  const [open, setOpen] = useState(false)
+  const [loggedIn, setLoggedIn] = useState(false)
   const [admin, setAdmin] = useState(false)
   const [cartCount, setCartCount] = useState(0)
-  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
-    const syncSession = () => {
-      setToken(getToken())
+    const sync = () => {
+      const token = localStorage.getItem("token")
+      setLoggedIn(Boolean(token))
       setAdmin(isAdmin())
       setCartCount(getCartCount())
     }
 
-    syncSession()
-    window.addEventListener("storage", syncSession)
-    window.addEventListener("cartUpdated", syncSession)
-    return () => {
-      window.removeEventListener("storage", syncSession)
-      window.removeEventListener("cartUpdated", syncSession)
-    }
-  }, [pathname])
+    sync()
+    window.addEventListener("storage", sync)
+    window.addEventListener("cartUpdated", sync)
 
-  const logout = () => {
+    return () => {
+      window.removeEventListener("storage", sync)
+      window.removeEventListener("cartUpdated", sync)
+    }
+  }, [])
+
+  const handleLogout = () => {
     removeToken()
+    setLoggedIn(false)
+    setAdmin(false)
+    setCartCount(0)
+    setOpen(false)
     router.push("/login")
-    router.refresh()
   }
 
-  const navLinks = [
-    { href: "/shop", label: "Shop", icon: <Star className="w-4 h-4" /> },
-    { href: "/draw", label: "Draw", icon: <Sparkles className="w-4 h-4" /> },
-    { href: "/fate-history", label: "Fate History", icon: <BookOpen className="w-4 h-4" /> },
-    { href: "/orders", label: "Orders", icon: <ShoppingCart className="w-4 h-4" /> },
-  ]
-
   return (
-    <header className="sticky top-0 z-50 w-full">
-      <div className="absolute inset-0 bg-background/80 backdrop-blur-md border-b border-border" />
-
-      <nav className="relative max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        <Link href="/" className="flex items-center gap-2 group" onClick={() => setMenuOpen(false)}>
-          <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/50 flex items-center justify-center group-hover:border-accent transition-colors">
-            <span className="text-accent text-sm">✦</span>
-          </div>
-          <span className="text-lg font-bold gold-text tracking-wide hidden sm:block">Florder</span>
+    <header className="sticky top-0 z-50 border-b border-border bg-white/90 backdrop-blur-md">
+      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2 no-underline">
+          <Sparkles className="h-5 w-5 text-gold" />
+          <span className="font-serif text-lg font-semibold tracking-wide text-foreground">
+            FLORDER
+          </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-1">
-          {navLinks.map((link) => (
+        <div className="hidden items-center gap-8 md:flex">
+          {mainLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 font-body",
-                pathname === link.href
-                  ? "bg-primary/20 text-accent border border-primary/40"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                "text-sm font-medium no-underline transition-colors",
+                pathname === link.href ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {link.icon}
               {link.label}
             </Link>
           ))}
@@ -87,112 +78,122 @@ export default function Navbar() {
             <Link
               href="/admin"
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-all duration-200 font-body",
-                pathname.startsWith("/admin")
-                  ? "bg-gold/20 text-gold border border-gold/40"
-                  : "text-gold-muted hover:text-gold hover:bg-gold/10"
+                "text-sm font-medium no-underline transition-colors",
+                pathname === "/admin" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <LayoutDashboard className="w-4 h-4" />
               Admin
             </Link>
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Link
-            href="/cart"
-            className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            aria-label="Cart"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            {cartCount > 0 ? (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-accent text-accent-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
-                {cartCount > 9 ? "9+" : cartCount}
-              </span>
-            ) : null}
+        <div className="hidden items-center gap-2 md:flex">
+          <Link href="/cart">
+            <Button variant="ghost" size="sm" className="relative">
+              <ShoppingBag className="h-4 w-4" />
+              {cartCount > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold px-1 text-[10px] font-semibold text-black">
+                  {cartCount}
+                </span>
+              ) : null}
+            </Button>
           </Link>
 
-          {token ? (
-            <div className="hidden md:flex items-center gap-2">
-              <Link href="/profile" className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Profile">
-                <User className="w-5 h-5" />
+          {loggedIn ? (
+            <>
+              <Link href="/profile">
+                <Button variant="ghost" size="sm">
+                  <User className="h-4 w-4" />
+                  Profile
+                </Button>
               </Link>
-              <button onClick={logout} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors" aria-label="Logout">
-                <LogOut className="w-5 h-5" />
-              </button>
-            </div>
+              <Button variant="secondary" size="sm" onClick={handleLogout}>
+                Logout
+              </Button>
+            </>
           ) : (
-            <div className="hidden md:flex items-center gap-2">
-              <Link href="/login" className="px-3 py-1.5 text-sm rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-body">
-                Login
+            <>
+              <Link href="/login">
+                <Button variant="ghost" size="sm">
+                  Login
+                </Button>
               </Link>
-              <Link href="/register" className="glow-btn px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground font-medium font-body transition-all">
-                Register
+              <Link href="/register">
+                <Button size="sm">Register</Button>
               </Link>
-            </div>
+            </>
           )}
-
-          <button
-            className="md:hidden p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setOpen((value) => !value)}
+          className="inline-flex rounded-xl border border-border bg-white p-2 text-foreground md:hidden"
+          aria-label="Toggle menu"
+        >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </nav>
 
-      {menuOpen ? (
-        <div className="md:hidden relative bg-card border-b border-border px-4 py-4 flex flex-col gap-2">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-body transition-colors",
-                pathname === link.href
-                  ? "bg-primary/20 text-accent"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+      {open ? (
+        <div className="border-t border-border bg-white px-4 py-4 md:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-2">
+            {mainLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "rounded-xl px-4 py-3 text-sm font-medium no-underline transition-colors",
+                  pathname === link.href
+                    ? "bg-secondary text-foreground"
+                    : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                )}
+              >
+                {link.label}
+              </Link>
+            ))}
+            {admin ? (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground no-underline hover:bg-secondary/80 hover:text-foreground"
+              >
+                Admin
+              </Link>
+            ) : null}
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <Link href="/cart" onClick={() => setOpen(false)}>
+                <Button variant="ghost" className="w-full justify-center">
+                  <ShoppingBag className="h-4 w-4" />
+                  Cart {cartCount > 0 ? `(${cartCount})` : ""}
+                </Button>
+              </Link>
+              {loggedIn ? (
+                <>
+                  <Link href="/profile" onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-center">
+                      <User className="h-4 w-4" />
+                      Profile
+                    </Button>
+                  </Link>
+                  <Button variant="secondary" className="col-span-2" onClick={handleLogout}>
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-center">
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/register" onClick={() => setOpen(false)}>
+                    <Button className="w-full justify-center">Register</Button>
+                  </Link>
+                </>
               )}
-            >
-              {link.icon}
-              {link.label}
-            </Link>
-          ))}
-          {admin ? (
-            <Link
-              href="/admin"
-              onClick={() => setMenuOpen(false)}
-              className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-gold hover:bg-gold/10 transition-colors font-body"
-            >
-              <LayoutDashboard className="w-4 h-4" />
-              Admin Dashboard
-            </Link>
-          ) : null}
-          <div className="border-t border-border pt-2 mt-1 flex flex-col gap-2">
-            {token ? (
-              <>
-                <Link href="/profile" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-body">
-                  <User className="w-4 h-4" />
-                  Profile
-                </Link>
-                <button onClick={logout} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-body">
-                  <LogOut className="w-4 h-4" />
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/login" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-body">
-                  Login
-                </Link>
-                <Link href="/register" onClick={() => setMenuOpen(false)} className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm bg-primary text-primary-foreground font-medium font-body transition-colors">
-                  Register
-                </Link>
-              </>
-            )}
+            </div>
           </div>
         </div>
       ) : null}

@@ -23,14 +23,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const base =
-      "glow-btn inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-body"
+      "glow-btn inline-flex items-center justify-center font-medium rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed font-body"
 
     const variants = {
-      primary: "bg-primary text-primary-foreground hover:bg-primary/90 border border-primary/50",
-      secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border",
-      ghost: "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent",
-      danger: "bg-red-900/40 text-red-300 hover:bg-red-900/60 border border-red-800/50",
-      gold: "bg-gold/20 text-gold hover:bg-gold/30 border border-gold/40",
+      primary: "bg-primary text-primary-foreground hover:bg-black/90 border border-black",
+      secondary: "bg-secondary text-secondary-foreground hover:bg-[#ece5da] border border-border",
+      ghost: "bg-white/80 text-foreground hover:bg-muted border border-border",
+      danger: "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200",
+      gold: "bg-[#d4b062] text-[#23190b] hover:bg-[#caa24d] border border-[#d4b062]",
     }
 
     const sizes = {

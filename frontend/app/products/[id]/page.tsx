@@ -6,6 +6,7 @@ import { useParams } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { addToCart } from "@/lib/cart"
 import { getProductImage } from "@/lib/product-media"
+import { Button } from "@/components/ui/button"
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -49,44 +50,60 @@ export default function ProductDetailPage() {
   }
 
   if (loading) {
-    return <main style={pageStyle}><section style={cardStyle}>กำลังโหลดข้อมูลสินค้า...</section></main>
+    return (
+      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+        <section className="mx-auto max-w-6xl rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+          กำลังโหลดข้อมูลสินค้า...
+        </section>
+      </main>
+    )
   }
 
   return (
-    <main style={pageStyle}>
-      <section style={{ ...cardStyle, maxWidth: 760, margin: "0 auto" }}>
-        <Link href="/products" style={linkStyle}>← กลับไปหน้าสินค้า</Link>
-        {error ? <p style={errorStyle}>{error}</p> : null}
-        {notice ? <p style={noticeStyle}>{notice}</p> : null}
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <section className="mx-auto max-w-6xl rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+        <Link href="/shop" className="text-sm text-muted-foreground no-underline hover:text-foreground">
+          ← กลับไปหน้าร้าน
+        </Link>
+        {error ? <p className="mt-4 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">{error}</p> : null}
+        {notice ? <p className="mt-4 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">{notice}</p> : null}
         {product ? (
           <>
-            <p style={eyebrowStyle}>PRODUCT DETAIL</p>
-            <h1 style={{ margin: "8px 0 12px", fontSize: 40 }}>{product.product_name}</h1>
-            <img
-              src={getProductImage(product)}
-              alt={product.product_name}
-              style={{
-                width: "100%",
-                height: 340,
-                objectFit: "cover",
-                borderRadius: 20,
-                border: "1px solid #ead7c8",
-                marginBottom: 18
-              }}
-            />
-            <div style={metaStyle}>{product.category} • {product.price} THB • stock {product.stock_quantity}</div>
-            {product.description ? <p style={copyStyle}>{product.description}</p> : null}
-            <div style={{ marginTop: 18 }}>
-              <div style={miniLabelStyle}>Main stats</div>
-              <div style={chipWrapStyle}>
+            <div className="mt-5 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+              <img
+                src={getProductImage(product)}
+                alt={product.product_name}
+                className="h-full min-h-80 w-full rounded-[1.75rem] border border-border object-cover"
+              />
+              <div>
+                <div className="text-xs tracking-[0.16em] text-gold">PRODUCT DETAIL</div>
+                <h1 className="mt-3 text-4xl font-semibold text-foreground">{product.product_name}</h1>
+                <div className="mt-4 text-base text-muted-foreground">
+                  {product.category} • {product.price} THB • stock {product.stock_quantity}
+                </div>
+                {product.description ? (
+                  <p className="mt-5 text-base leading-8 text-muted-foreground">{product.description}</p>
+                ) : null}
+                <div className="mt-6">
+                  <div className="text-xs tracking-[0.16em] text-gold">MAIN STATS</div>
+                  <div className="mt-3 flex flex-wrap gap-2">
                 {product.main_stat.map((stat: string) => (
-                  <span key={stat} style={chipStyle}>{stat}</span>
+                    <span
+                      key={stat}
+                      className="rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-sm text-gold"
+                    >
+                      {stat}
+                    </span>
                 ))}
+                  </div>
+                </div>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <Button onClick={handleAddToCart}>ใส่ตะกร้า</Button>
+                  <Link href="/cart">
+                    <Button variant="gold">ไปที่ตะกร้า</Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-            <div style={actionRowStyle}>
-              <button type="button" onClick={handleAddToCart} style={buttonStyle}>Add to Cart</button>
-              <Link href="/cart" style={secondaryLinkStyle}>Go to Cart</Link>
             </div>
           </>
         ) : null}
@@ -94,30 +111,3 @@ export default function ProductDetailPage() {
     </main>
   )
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "32px 20px 60px",
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-const cardStyle = {
-  background: "rgba(255,255,255,0.84)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 28,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-const linkStyle = { color: "#7b5234", textDecoration: "none" } as const
-const eyebrowStyle = { margin: "12px 0 0", fontSize: 12, letterSpacing: "0.16em", color: "#9b7458" } as const
-const metaStyle = { color: "#6e5848", fontSize: 15 } as const
-const copyStyle = { color: "#4d3a2e", lineHeight: 1.8, marginTop: 18 } as const
-const miniLabelStyle = { color: "#8b705d", fontSize: 12, letterSpacing: "0.06em" } as const
-const chipWrapStyle = { display: "flex", gap: 8, flexWrap: "wrap" as const, marginTop: 10 } as const
-const chipStyle = { padding: "8px 12px", borderRadius: 999, background: "#f1e3d8", color: "#684d3b", fontSize: 13 } as const
-const actionRowStyle = { display: "flex", gap: 10, flexWrap: "wrap" as const, marginTop: 22 } as const
-const buttonStyle = { border: "none", borderRadius: 999, padding: "12px 18px", background: "#7c5234", color: "#fffaf6", cursor: "pointer", fontSize: 14 } as const
-const secondaryLinkStyle = { display: "inline-block", textDecoration: "none", borderRadius: 999, padding: "12px 18px", background: "#fff8f2", border: "1px solid #dbc5b4", color: "#5f4738" } as const
-const noticeStyle = { padding: "12px 16px", borderRadius: 14, background: "#edf7ef", color: "#146c2e", marginTop: 14 } as const
-const errorStyle = { padding: "12px 16px", borderRadius: 14, background: "#fdeeee", color: "#b42318", marginTop: 14 } as const

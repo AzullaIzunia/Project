@@ -1,17 +1,18 @@
 "use client"
 
 import Link from "next/link"
+import { Package } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 type Order = {
   order_id: number
   total_price: number
   payment_method: string
-  payment_bill?: string | null
   latestOrderStatus: string
-  order_status: string[]
   createOrder: string
   orderItems: Array<{
     orderItem_id: number
@@ -39,8 +40,8 @@ export default function OrdersPage() {
     try {
       const res = await fetch(apiUrl("/api/orders/my"), {
         headers: {
-          Authorization: `Bearer ${authToken}`
-        }
+          Authorization: `Bearer ${authToken}`,
+        },
       })
 
       const data = await res.json()
@@ -70,11 +71,14 @@ export default function OrdersPage() {
   }, [router])
 
   const cancelOrder = async (orderId: number) => {
+    setError("")
+    setNotice("")
+
     const res = await fetch(apiUrl(`/api/orders/${orderId}/cancel`), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     const data = await res.json()
@@ -93,284 +97,123 @@ export default function OrdersPage() {
     router.push("/payment")
   }
 
-  if (loading) {
-    return (
-      <main style={pageStyle}>
-        <div style={shellStyle}>
-          <h1 style={{ marginTop: 0 }}>My Orders</h1>
-          <p>กำลังโหลดรายการออเดอร์...</p>
-        </div>
-      </main>
-    )
-  }
-
   return (
-    <main style={pageStyle}>
-      <div style={shellStyle}>
-        <div style={headerStyle}>
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p style={eyebrowStyle}>ORDER CENTER</p>
-            <h1 style={{ margin: "8px 0 10px", fontSize: 38 }}>My Orders</h1>
-            <p style={copyStyle}>
-              ตรวจดูการชำระเงิน สถานะออเดอร์ และกดเข้าไปดูรายละเอียดแต่ละออเดอร์ได้จากหน้านี้
+            <div className="text-xs tracking-[0.18em] text-gold">MY ORDERS</div>
+            <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
+              คำสั่งซื้อของฉัน
+            </h1>
+            <p className="mt-3 max-w-2xl text-muted-foreground">
+              ตรวจสถานะการชำระเงิน ดูสินค้าในแต่ละออเดอร์ และไปต่อที่ payment ได้จากหน้านี้
             </p>
           </div>
-          <button type="button" onClick={() => fetchOrders(token)} style={primaryButtonStyle}>
+          <Button variant="ghost" onClick={() => fetchOrders(token)} disabled={loading}>
             รีเฟรช
-          </button>
+          </Button>
         </div>
 
-        {error ? <p style={errorStyle}>{error}</p> : null}
-        {notice ? <p style={noticeStyle}>{notice}</p> : null}
+        {error ? (
+          <div className="mb-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        ) : null}
 
-        {orders.length === 0 ? (
-          <section style={cardStyle}>
-            <h2 style={{ marginTop: 0 }}>ยังไม่มีออเดอร์</h2>
-            <p style={copyStyle}>เมื่อคุณซื้อสินค้าหรือชำระเงินแล้ว รายการจะมาแสดงที่หน้านี้</p>
-            <Link href="/products" style={linkButtonStyle}>
-              ไปดูสินค้า
-            </Link>
-          </section>
+        {notice ? (
+          <div className="mb-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+            {notice}
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+            กำลังโหลดรายการออเดอร์...
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="rounded-[2rem] border border-border bg-card/70 p-10 text-center">
+            <Package className="mx-auto h-10 w-10 text-gold" />
+            <h2 className="mt-5 text-2xl font-semibold text-foreground">ยังไม่มีออเดอร์</h2>
+            <p className="mt-3 text-muted-foreground">เริ่มเลือกสินค้าในร้านก่อน แล้วรายการจะมาแสดงที่นี่</p>
+            <div className="mt-6">
+              <Link href="/shop">
+                <Button>ไปที่ร้านค้า</Button>
+              </Link>
+            </div>
+          </div>
         ) : (
-          <section style={{ display: "grid", gap: 18 }}>
-            {orders.map(order => {
+          <div className="space-y-4">
+            {orders.map((order) => {
               const canCancel = order.latestOrderStatus === "paid"
               const canContinuePayment = order.latestOrderStatus === "paid"
 
               return (
-                <article key={order.order_id} style={cardStyle}>
-                  <div style={orderTopStyle}>
+                <article
+                  key={order.order_id}
+                  className="overflow-hidden rounded-[1.75rem] border border-border bg-card/70"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-5">
                     <div>
-                      <div style={titleStyle}>Order #{order.order_id}</div>
-                      <div style={metaStyle}>{new Date(order.createOrder).toLocaleString()}</div>
+                      <div className="text-lg font-semibold text-foreground">Order #{order.order_id}</div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {new Date(order.createOrder).toLocaleString()}
+                      </div>
                     </div>
-                    <span style={badgeStyle}>{order.latestOrderStatus}</span>
-                  </div>
-
-                  <div style={summaryGridStyle}>
-                    <div>
-                      <div style={labelStyle}>Payment</div>
-                      <div style={valueStyle}>{order.payment_method.replace("_", " ")}</div>
-                    </div>
-                    <div>
-                      <div style={labelStyle}>Total</div>
-                      <div style={valueStyle}>{order.total_price} THB</div>
-                    </div>
-                    <div>
-                      <div style={labelStyle}>Items</div>
-                      <div style={valueStyle}>{order.orderItems.length} รายการ</div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <StatusBadge status={order.latestOrderStatus} />
+                      <div className="text-sm text-muted-foreground">
+                        {order.payment_method.replace("_", " ")}
+                      </div>
+                      <div className="text-lg font-semibold text-foreground">
+                        {order.total_price} THB
+                      </div>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: 18 }}>
-                    <div style={labelStyle}>Products</div>
-                    <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                      {order.orderItems.map(item => (
-                        <div key={item.orderItem_id} style={itemRowStyle}>
-                          <span>{item.product.product_name}</span>
-                          <span>x{item.quantity}</span>
+                  <div className="px-5 py-5">
+                    <div className="grid gap-3">
+                      {order.orderItems.map((item) => (
+                        <div
+                          key={item.orderItem_id}
+                          className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3"
+                        >
+                          <div>
+                            <div className="font-medium text-foreground">{item.product.product_name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {item.product.category}
+                            </div>
+                          </div>
+                          <div className="text-right text-sm text-muted-foreground">
+                            <div>x{item.quantity}</div>
+                            <div>{item.price} THB</div>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
 
-                  <div style={actionRowStyle}>
-                    <Link href={`/orders/${order.order_id}`} style={primaryLinkStyle}>
-                      ดูรายละเอียด
-                    </Link>
-
-                    {canContinuePayment ? (
-                      <button
-                        type="button"
-                        onClick={() => goToPayment(order.order_id)}
-                        style={secondaryButtonStyle}
-                      >
-                        ไปหน้าชำระเงิน
-                      </button>
-                    ) : null}
-
-                    {canCancel ? (
-                      <button
-                        type="button"
-                        onClick={() => cancelOrder(order.order_id)}
-                        style={dangerButtonStyle}
-                      >
-                        ยกเลิกออเดอร์
-                      </button>
-                    ) : null}
+                    <div className="mt-5 flex flex-wrap gap-3">
+                      <Link href={`/orders/${order.order_id}`}>
+                        <Button>ดูรายละเอียด</Button>
+                      </Link>
+                      {canContinuePayment ? (
+                        <Button variant="gold" onClick={() => goToPayment(order.order_id)}>
+                          ไปหน้าชำระเงิน
+                        </Button>
+                      ) : null}
+                      {canCancel ? (
+                        <Button variant="danger" onClick={() => cancelOrder(order.order_id)}>
+                          ยกเลิกออเดอร์
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </article>
               )
             })}
-          </section>
+          </div>
         )}
       </div>
     </main>
   )
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "32px 20px 60px",
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-
-const shellStyle = {
-  maxWidth: 980,
-  margin: "0 auto"
-} as const
-
-const cardStyle = {
-  background: "rgba(255,255,255,0.82)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 24,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 16,
-  flexWrap: "wrap" as const,
-  marginBottom: 20
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.16em",
-  color: "#9b7458"
-} as const
-
-const copyStyle = {
-  margin: 0,
-  color: "#6e5848",
-  lineHeight: 1.7
-} as const
-
-const titleStyle = {
-  fontSize: 26,
-  fontWeight: 700
-} as const
-
-const metaStyle = {
-  marginTop: 6,
-  color: "#7c6657",
-  fontSize: 14
-} as const
-
-const orderTopStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  alignItems: "flex-start",
-  flexWrap: "wrap" as const
-} as const
-
-const badgeStyle = {
-  display: "inline-block",
-  padding: "8px 12px",
-  borderRadius: 999,
-  background: "#f2e0d4",
-  color: "#5c4535",
-  textTransform: "capitalize" as const
-} as const
-
-const summaryGridStyle = {
-  display: "grid",
-  gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-  marginTop: 18
-} as const
-
-const labelStyle = {
-  color: "#8b705d",
-  fontSize: 13,
-  letterSpacing: "0.05em"
-} as const
-
-const valueStyle = {
-  marginTop: 6,
-  fontSize: 17,
-  fontWeight: 700
-} as const
-
-const itemRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  padding: "10px 12px",
-  borderRadius: 14,
-  background: "#fff8f2",
-  color: "#5d4738"
-} as const
-
-const actionRowStyle = {
-  display: "flex",
-  gap: 10,
-  marginTop: 18,
-  flexWrap: "wrap" as const
-} as const
-
-const primaryButtonStyle = {
-  border: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const secondaryButtonStyle = {
-  border: "1px solid #d8c1b0",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "#fffaf4",
-  color: "#5e4637",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const dangerButtonStyle = {
-  ...secondaryButtonStyle,
-  background: "#fff0ee",
-  borderColor: "#eabdb7",
-  color: "#a03e31"
-} as const
-
-const primaryLinkStyle = {
-  textDecoration: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  fontSize: 14
-} as const
-
-const linkButtonStyle = {
-  display: "inline-block",
-  marginTop: 10,
-  textDecoration: "none",
-  color: "#7c5234"
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginBottom: 16
-} as const
-
-const noticeStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#edf7ef",
-  color: "#146c2e",
-  marginBottom: 16
-} as const

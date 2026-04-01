@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 type Step = "email" | "otp" | "reset" | "done"
 
@@ -27,9 +29,9 @@ export default function ForgotPasswordPage() {
       const res = await fetch(apiUrl("/api/auth/forgot-password"), {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
       })
 
       const data = await res.json()
@@ -58,9 +60,9 @@ export default function ForgotPasswordPage() {
       const res = await fetch(apiUrl("/api/auth/verify-otp"), {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ token, otp })
+        body: JSON.stringify({ token, otp }),
       })
 
       const data = await res.json()
@@ -89,12 +91,12 @@ export default function ForgotPasswordPage() {
       const res = await fetch(apiUrl("/api/auth/reset-password"), {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           token,
-          newPassword
-        })
+          newPassword,
+        }),
       })
 
       const data = await res.json()
@@ -114,96 +116,110 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main style={pageStyle}>
-      <section style={cardStyle}>
-        <p style={eyebrowStyle}>ACCOUNT RECOVERY</p>
-        <h1 style={{ margin: "8px 0 10px", fontSize: 34 }}>Forgot Password</h1>
-        <p style={copyStyle}>
-          ขอ OTP ทางอีเมล ยืนยันตัวตน แล้วตั้งรหัสผ่านใหม่ใน flow เดียว
-        </p>
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-2xl">
+        <section className="rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+          <div className="text-xs tracking-[0.18em] text-gold">ACCOUNT RECOVERY</div>
+          <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
+            Forgot Password
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            ขอ OTP ทางอีเมล ยืนยันตัวตน แล้วตั้งรหัสผ่านใหม่ใน flow เดียว
+          </p>
 
-        <div style={stepRowStyle}>
-          {["email", "otp", "reset", "done"].map((item, index) => (
-            <div
-              key={item}
-              style={{
-                ...stepChipStyle,
-                background:
-                  item === step ? "#7c5234" : index <= stepIndex(step) ? "#d9b79a" : "#f2e5d8",
-                color: item === step ? "#fffaf6" : "#6b5545"
-              }}
-            >
-              {index + 1}
+          <div className="mt-6 flex gap-2">
+            {["email", "otp", "reset", "done"].map((item, index) => (
+              <div
+                key={item}
+                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm ${
+                  item === step
+                    ? "bg-foreground text-background"
+                    : index <= stepIndex(step)
+                      ? "bg-gold/20 text-gold"
+                      : "bg-background/40 text-muted-foreground"
+                }`}
+              >
+                {index + 1}
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 space-y-4">
+            {step === "email" ? (
+              <>
+                <Input
+                  id="email"
+                  label="อีเมล"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                />
+                <Button type="button" onClick={requestOtp} className="w-full justify-center" disabled={loading || !email}>
+                  {loading ? "กำลังส่ง OTP..." : "ส่ง OTP"}
+                </Button>
+              </>
+            ) : null}
+
+            {step === "otp" ? (
+              <>
+                <Input
+                  id="otp"
+                  label="OTP 6 หลัก"
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value)}
+                />
+                <Button type="button" onClick={verifyOtp} className="w-full justify-center" disabled={loading || !otp}>
+                  {loading ? "กำลังตรวจสอบ..." : "ยืนยัน OTP"}
+                </Button>
+              </>
+            ) : null}
+
+            {step === "reset" ? (
+              <>
+                <Input id="verified-email" label="อีเมล" value={email} readOnly />
+                <Input
+                  id="new-password"
+                  type="password"
+                  label="รหัสผ่านใหม่"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                />
+                <Button
+                  type="button"
+                  onClick={updatePassword}
+                  className="w-full justify-center"
+                  disabled={loading || !newPassword}
+                >
+                  {loading ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}
+                </Button>
+              </>
+            ) : null}
+
+            {step === "done" ? (
+              <Button type="button" onClick={() => router.push("/login")} className="w-full justify-center">
+                กลับไปหน้า Login
+              </Button>
+            ) : null}
+          </div>
+
+          {error ? (
+            <div className="mt-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+              {error}
             </div>
-          ))}
-        </div>
+          ) : null}
 
-        {step === "email" ? (
-          <div style={fieldWrapStyle}>
-            <input
-              placeholder="Email"
-              value={email}
-              onChange={event => setEmail(event.target.value)}
-              style={inputStyle}
-            />
-            <button type="button" onClick={requestOtp} style={buttonStyle} disabled={loading || !email}>
-              {loading ? "กำลังส่ง OTP..." : "ส่ง OTP"}
-            </button>
+          {message ? (
+            <div className="mt-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+              {message}
+            </div>
+          ) : null}
+
+          <div className="mt-6">
+            <Link href="/login" className="text-sm text-muted-foreground no-underline hover:text-foreground">
+              ← กลับไปหน้า Login
+            </Link>
           </div>
-        ) : null}
-
-        {step === "otp" ? (
-          <div style={fieldWrapStyle}>
-            <input
-              placeholder="OTP 6 หลัก"
-              value={otp}
-              onChange={event => setOtp(event.target.value)}
-              style={inputStyle}
-            />
-            <button type="button" onClick={verifyOtp} style={buttonStyle} disabled={loading || !otp}>
-              {loading ? "กำลังตรวจสอบ..." : "ยืนยัน OTP"}
-            </button>
-          </div>
-        ) : null}
-
-        {step === "reset" ? (
-          <div style={fieldWrapStyle}>
-            <input value={email} readOnly style={{ ...inputStyle, background: "#f6eee7" }} />
-            <input
-              type="password"
-              placeholder="New password"
-              value={newPassword}
-              onChange={event => setNewPassword(event.target.value)}
-              style={inputStyle}
-            />
-            <button
-              type="button"
-              onClick={updatePassword}
-              style={buttonStyle}
-              disabled={loading || !newPassword}
-            >
-              {loading ? "กำลังบันทึก..." : "ตั้งรหัสผ่านใหม่"}
-            </button>
-          </div>
-        ) : null}
-
-        {step === "done" ? (
-          <div style={fieldWrapStyle}>
-            <button type="button" onClick={() => router.push("/login")} style={buttonStyle}>
-              กลับไปหน้า Login
-            </button>
-          </div>
-        ) : null}
-
-        {error ? <p style={errorStyle}>{error}</p> : null}
-        {message ? <p style={noticeStyle}>{message}</p> : null}
-
-        <div style={{ marginTop: 18 }}>
-          <Link href="/login" style={linkStyle}>
-            ← กลับไปหน้า Login
-          </Link>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
   )
 }
@@ -212,100 +228,3 @@ function stepIndex(step: Step) {
   const steps: Step[] = ["email", "otp", "reset", "done"]
   return steps.indexOf(step)
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  display: "grid",
-  placeItems: "center",
-  padding: 20,
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-
-const cardStyle = {
-  width: "100%",
-  maxWidth: 500,
-  background: "rgba(255,255,255,0.84)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 28,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.16em",
-  color: "#9b7458"
-} as const
-
-const copyStyle = {
-  margin: 0,
-  color: "#6e5848",
-  lineHeight: 1.7
-} as const
-
-const stepRowStyle = {
-  display: "flex",
-  gap: 10,
-  marginTop: 18
-} as const
-
-const stepChipStyle = {
-  width: 34,
-  height: 34,
-  borderRadius: 999,
-  display: "grid",
-  placeItems: "center",
-  fontSize: 13
-} as const
-
-const fieldWrapStyle = {
-  display: "grid",
-  gap: 12,
-  marginTop: 18
-} as const
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box" as const,
-  padding: "14px 16px",
-  borderRadius: 16,
-  border: "1px solid #d9c6b6",
-  background: "#fffdfa",
-  color: "#2f2118",
-  fontSize: 14
-} as const
-
-const buttonStyle = {
-  width: "100%",
-  border: "none",
-  borderRadius: 999,
-  padding: "14px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const linkStyle = {
-  color: "#7b5234",
-  textDecoration: "none"
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginTop: 14
-} as const
-
-const noticeStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#edf7ef",
-  color: "#146c2e",
-  marginTop: 14
-} as const

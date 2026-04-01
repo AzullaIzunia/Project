@@ -1,10 +1,13 @@
 "use client"
 
 import Link from "next/link"
+import { CreditCard, QrCode } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { getProductImage } from "@/lib/product-media"
+import { Button } from "@/components/ui/button"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 type Order = {
   order_id: number
@@ -51,8 +54,8 @@ export default function PaymentPage() {
       try {
         const res = await fetch(apiUrl(`/api/orders/${orderId}`), {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         })
 
         const data = await res.json()
@@ -84,11 +87,9 @@ export default function PaymentPage() {
       const res = await fetch(apiUrl(`/api/orders/${order.order_id}/pay`), {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       })
-
-      const data = await res.json()
 
       if (!res.ok) {
         router.push("/pay-fail")
@@ -97,6 +98,8 @@ export default function PaymentPage() {
 
       localStorage.removeItem("pending_order_id")
       router.push("/pay-success")
+    } catch {
+      setError("เกิดข้อผิดพลาดระหว่างชำระเงิน")
     } finally {
       setProcessing(false)
     }
@@ -108,237 +111,144 @@ export default function PaymentPage() {
     router.push("/upload-slip")
   }
 
-  if (loading) {
-    return (
-      <main style={pageStyle}>
-        <section style={cardStyle}>
-          <h1 style={{ marginTop: 0 }}>Payment</h1>
-          <p style={copyStyle}>กำลังโหลดข้อมูลการชำระเงิน...</p>
-        </section>
-      </main>
-    )
-  }
-
   return (
-    <main style={pageStyle}>
-      <section style={cardStyle}>
-        <p style={eyebrowStyle}>PAYMENT</p>
-        <h1 style={{ margin: "8px 0 12px", fontSize: 36 }}>Complete Your Payment</h1>
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8">
+          <div className="text-xs tracking-[0.18em] text-gold">PAYMENT</div>
+          <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
+            ชำระเงินสำหรับออเดอร์ของคุณ
+          </h1>
+          <p className="mt-3 max-w-2xl text-muted-foreground">
+            ตรวจยอด ชำระผ่านบัตร หรือสแกน PromptPay แล้วอัปโหลดสลิปต่อได้จากหน้านี้
+          </p>
+        </div>
 
-        {error ? <p style={errorStyle}>{error}</p> : null}
+        {error ? (
+          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
 
-        {order ? (
-          <>
-            <div style={summaryBoxStyle}>
-              <div style={rowStyle}>
-                <span>Order</span>
-                <strong>#{order.order_id}</strong>
+        {loading ? (
+          <div className="rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+            กำลังโหลดข้อมูลการชำระเงิน...
+          </div>
+        ) : order ? (
+          <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <aside className="rounded-[2rem] border border-border bg-card/70 p-6">
+              <div className="text-xs tracking-[0.18em] text-gold">SUMMARY</div>
+              <div className="mt-5 space-y-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Order</span>
+                  <strong className="text-foreground">#{order.order_id}</strong>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Method</span>
+                  <strong className="text-foreground">{order.payment_method.replace("_", " ")}</strong>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Status</span>
+                  <StatusBadge status={order.latestOrderStatus} />
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Total</span>
+                  <strong className="text-xl text-foreground">{order.total_price} THB</strong>
+                </div>
               </div>
-              <div style={rowStyle}>
-                <span>Method</span>
-                <strong>{order.payment_method.replace("_", " ")}</strong>
-              </div>
-              <div style={rowStyle}>
-                <span>Status</span>
-                <strong style={{ textTransform: "capitalize" }}>{order.latestOrderStatus}</strong>
-              </div>
-              <div style={rowStyle}>
-                <span>Total</span>
-                <strong>{order.total_price} THB</strong>
-              </div>
-            </div>
 
-            <div style={{ marginTop: 18 }}>
-              <div style={miniLabelStyle}>Items</div>
-              <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
-                {order.orderItems.map(item => (
-                  <div key={item.orderItem_id} style={itemRowStyle}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="mt-6 rounded-2xl border border-border bg-background/40 p-4">
+                {order.latestOrderStatus !== "paid" ? (
+                  <p className="text-sm text-muted-foreground">
+                    ออเดอร์นี้ไม่ได้อยู่ในสถานะที่ต้องชำระเพิ่มแล้ว
+                  </p>
+                ) : order.payment_method === "promptpay" ? (
+                  <>
+                    <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                      <QrCode className="h-5 w-5 text-gold" />
+                      PromptPay
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      สแกน QR code ด้านล่างเพื่อชำระเงิน แล้วอัปโหลดสลิปให้แอดมินตรวจสอบ
+                    </p>
+                    <img
+                      src="/promptpay-qr-demo.svg"
+                      alt="PromptPay QR"
+                      className="mt-5 w-full rounded-2xl border border-border bg-white p-4"
+                    />
+                    <Button className="mt-5 w-full justify-center" onClick={goToSlipUpload}>
+                      ไปหน้าอัปโหลดสลิป
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                      <CreditCard className="h-5 w-5 text-gold" />
+                      Credit Card
+                    </div>
+                    <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                      ระบบนี้ใช้การชำระเงินแบบจำลอง เมื่อกดยืนยันจะเรียก backend ทันที
+                    </p>
+                    <Button
+                      className="mt-5 w-full justify-center"
+                      onClick={payByCard}
+                      loading={processing}
+                      disabled={order.latestOrderStatus !== "paid"}
+                    >
+                      {processing ? "กำลังดำเนินการ..." : "ยืนยันการชำระเงิน"}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </aside>
+
+            <section className="rounded-[2rem] border border-border bg-card/70 p-6">
+              <div className="text-xs tracking-[0.18em] text-gold">ITEMS</div>
+              <div className="mt-5 grid gap-3">
+                {order.orderItems.map((item) => (
+                  <div
+                    key={item.orderItem_id}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background/40 px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
                       <img
                         src={getProductImage(item.product)}
                         alt={item.product.product_name}
-                        style={{ width: 52, height: 52, objectFit: "cover", borderRadius: 12, border: "1px solid #ead7c8" }}
+                        className="h-14 w-14 rounded-xl border border-border object-cover"
                       />
-                      <span>{item.product.product_name}</span>
+                      <div>
+                        <div className="font-medium text-foreground">{item.product.product_name}</div>
+                        <div className="text-sm text-muted-foreground">{item.product.category}</div>
+                      </div>
                     </div>
-                    <span>x{item.quantity}</span>
+                    <div className="text-sm text-muted-foreground">x{item.quantity}</div>
                   </div>
                 ))}
               </div>
-            </div>
 
-            {order.latestOrderStatus !== "paid" ? (
-              <p style={noticeStyle}>ออเดอร์นี้ไม่ได้อยู่ในสถานะที่ต้องชำระเพิ่มแล้ว</p>
-            ) : order.payment_method === "promptpay" ? (
-              <>
-                <div style={guideBoxStyle}>
-                  <h2 style={{ marginTop: 0, fontSize: 24 }}>PromptPay</h2>
-                  <p style={copyStyle}>
-                    อัปโหลดสลิปเพื่อส่งให้ระบบตรวจสอบและรอแอดมินอนุมัติการชำระเงิน
-                  </p>
-                  <div style={{ marginTop: 16 }}>
-                    <img
-                      src="/promptpay-qr-demo.svg"
-                      alt="Demo PromptPay QR"
-                      style={{
-                        width: "100%",
-                        maxWidth: 280,
-                        display: "block",
-                        borderRadius: 18,
-                        border: "1px solid #e3d0c0",
-                        background: "#fff"
-                      }}
-                    />
-                    <p style={{ ...copyStyle, marginTop: 10, fontSize: 14 }}>
-                      ตอนเดโม่สามารถเปลี่ยนไฟล์นี้เป็น QR พร้อมเพย์จริงได้ที่
-                      {" "}
-                      <code>/frontend/public/promptpay-qr-demo.svg</code>
-                    </p>
-                  </div>
-                </div>
-                <div style={actionRowStyle}>
-                  <button type="button" onClick={goToSlipUpload} style={primaryButtonStyle}>
-                    ไปหน้าอัปโหลดสลิป
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={guideBoxStyle}>
-                  <h2 style={{ marginTop: 0, fontSize: 24 }}>Credit Card</h2>
-                  <p style={copyStyle}>
-                    ระบบนี้ใช้การชำระแบบจำลอง เมื่อกดยืนยันจะส่งคำขอชำระเงินให้ backend ทันที
-                  </p>
-                </div>
-                <div style={actionRowStyle}>
-                  <button type="button" onClick={payByCard} style={primaryButtonStyle} disabled={processing}>
-                    {processing ? "กำลังดำเนินการ..." : "ยืนยันการชำระเงิน"}
-                  </button>
-                </div>
-              </>
-            )}
-          </>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link href="/orders">
+                  <Button variant="ghost">กลับไป My Orders</Button>
+                </Link>
+                {order.payment_method === "promptpay" && order.latestOrderStatus === "paid" ? (
+                  <Button variant="gold" onClick={goToSlipUpload}>
+                    อัปโหลดสลิป
+                  </Button>
+                ) : null}
+              </div>
+            </section>
+          </div>
         ) : (
-          <div style={actionRowStyle}>
-            <Link href="/orders" style={secondaryLinkStyle}>ไปที่ My Orders</Link>
+          <div className="rounded-[2rem] border border-border bg-card/70 p-8 text-center">
+            <p className="text-muted-foreground">ไม่พบข้อมูลออเดอร์</p>
+            <div className="mt-5">
+              <Link href="/orders">
+                <Button>กลับไป My Orders</Button>
+              </Link>
+            </div>
           </div>
         )}
-      </section>
+      </div>
     </main>
   )
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  display: "grid",
-  placeItems: "center",
-  padding: 20,
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-
-const cardStyle = {
-  width: "100%",
-  maxWidth: 620,
-  background: "rgba(255,255,255,0.84)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 28,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.16em",
-  color: "#9b7458"
-} as const
-
-const copyStyle = {
-  margin: 0,
-  color: "#6e5848",
-  lineHeight: 1.7
-} as const
-
-const summaryBoxStyle = {
-  display: "grid",
-  gap: 12,
-  padding: 16,
-  borderRadius: 18,
-  background: "#fff8f2",
-  border: "1px solid #e3d0c0"
-} as const
-
-const rowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12
-} as const
-
-const miniLabelStyle = {
-  color: "#8b705d",
-  fontSize: 12,
-  letterSpacing: "0.06em"
-} as const
-
-const itemRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  padding: "10px 12px",
-  borderRadius: 14,
-  background: "#fff8f2",
-  color: "#5d4738"
-} as const
-
-const guideBoxStyle = {
-  marginTop: 18,
-  padding: 18,
-  borderRadius: 18,
-  background: "#f6ede3",
-  border: "1px solid #e3d0c0"
-} as const
-
-const actionRowStyle = {
-  display: "flex",
-  gap: 12,
-  flexWrap: "wrap" as const,
-  marginTop: 18
-} as const
-
-const primaryButtonStyle = {
-  border: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const secondaryLinkStyle = {
-  display: "inline-block",
-  textDecoration: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "#fff8f2",
-  border: "1px solid #dbc5b4",
-  color: "#5f4738"
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginTop: 14
-} as const
-
-const noticeStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#edf7ef",
-  color: "#146c2e",
-  marginTop: 14
-} as const

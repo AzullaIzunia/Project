@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { CartItem, clearCart, getCart, removeFromCart, updateCartQuantity } from "@/lib/cart"
 import { getProductImage } from "@/lib/product-media"
+import { Button } from "@/components/ui/button"
 
 export default function CartPage() {
   const router = useRouter()
@@ -70,77 +71,117 @@ export default function CartPage() {
   }
 
   if (loading) {
-    return <main style={pageStyle}><section style={cardStyle}>กำลังโหลดตะกร้า...</section></main>
+    return (
+      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+        <section className="mx-auto max-w-6xl rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+          กำลังโหลดตะกร้า...
+        </section>
+      </main>
+    )
   }
 
   return (
-    <main style={pageStyle}>
-      <div style={shellStyle}>
-        <div style={headerStyle}>
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p style={eyebrowStyle}>CART</p>
-            <h1 style={{ margin: "8px 0 10px", fontSize: 38 }}>Your Cart</h1>
-            <p style={copyStyle}>จัดจำนวนสินค้า เลือกวิธีชำระเงิน แล้วสร้างออเดอร์เพื่อไปต่อที่ payment</p>
+            <p className="text-xs tracking-[0.18em] text-gold">CART</p>
+            <h1 className="mt-2 text-4xl font-semibold text-foreground">Your Cart</h1>
+            <p className="mt-2 max-w-2xl text-muted-foreground">
+              จัดจำนวนสินค้า เลือกวิธีชำระเงิน แล้วสร้างออเดอร์เพื่อไปต่อที่ payment
+            </p>
           </div>
-          <Link href="/products" style={secondaryLinkStyle}>Continue Shopping</Link>
+          <Link href="/shop">
+            <Button variant="ghost">Continue Shopping</Button>
+          </Link>
         </div>
 
-        {error ? <p style={errorStyle}>{error}</p> : null}
+        {error ? (
+          <p className="mb-4 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+            {error}
+          </p>
+        ) : null}
 
         {items.length === 0 ? (
-          <section style={cardStyle}>
-            <h2 style={{ marginTop: 0 }}>ตะกร้าว่าง</h2>
-            <p style={copyStyle}>เพิ่มสินค้าจากหน้ารายการสินค้าหรือสินค้าที่ระบบแนะนำก่อน</p>
+          <section className="rounded-[2rem] border border-border bg-card/70 p-8">
+            <h2 className="mt-0 text-2xl font-semibold text-foreground">ตะกร้าว่าง</h2>
+            <p className="mt-3 text-muted-foreground">
+              เพิ่มสินค้าจากหน้ารายการสินค้าหรือสินค้าที่ระบบแนะนำก่อน
+            </p>
           </section>
         ) : (
-          <div style={layoutStyle}>
-            <section style={{ display: "grid", gap: 14 }}>
+          <div className="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
+            <section className="grid gap-4">
               {items.map(item => (
-                <article key={item.product_id} style={cardStyle}>
-                  <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: 14, alignItems: "start" }}>
+                <article key={item.product_id} className="rounded-[1.75rem] border border-border bg-card/70 p-5">
+                  <div className="grid gap-4 sm:grid-cols-[96px_1fr] sm:items-start">
                     <img
                       src={getProductImage(item)}
                       alt={item.product_name}
-                      style={{ width: 96, height: 96, objectFit: "cover", borderRadius: 16, border: "1px solid #ead7c8" }}
+                      className="h-24 w-24 rounded-2xl border border-border object-cover"
                     />
                     <div>
-                      <div style={titleStyle}>{item.product_name}</div>
-                      <div style={metaStyle}>{item.category} • {item.price} THB</div>
+                      <div className="text-xl font-semibold text-foreground">{item.product_name}</div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {item.category} • {item.price} THB
+                      </div>
                     </div>
                   </div>
-                  <div style={actionRowStyle}>
-                    <button type="button" onClick={() => { updateCartQuantity(item.product_id, item.quantity - 1); syncCart() }} style={smallButtonStyle}>-</button>
-                    <span style={{ padding: "10px 6px" }}>{item.quantity}</span>
-                    <button type="button" onClick={() => { updateCartQuantity(item.product_id, item.quantity + 1); syncCart() }} style={smallButtonStyle}>+</button>
-                    <button type="button" onClick={() => { removeFromCart(item.product_id); syncCart() }} style={dangerButtonStyle}>Remove</button>
+                  <div className="mt-5 flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="ghost" onClick={() => { updateCartQuantity(item.product_id, item.quantity - 1); syncCart() }}>
+                      -
+                    </Button>
+                    <span className="px-2 text-sm text-foreground">{item.quantity}</span>
+                    <Button type="button" variant="ghost" onClick={() => { updateCartQuantity(item.product_id, item.quantity + 1); syncCart() }}>
+                      +
+                    </Button>
+                    <Button type="button" variant="danger" onClick={() => { removeFromCart(item.product_id); syncCart() }}>
+                      Remove
+                    </Button>
                   </div>
                 </article>
               ))}
             </section>
 
-            <aside style={cardStyle}>
-              <h2 style={{ marginTop: 0 }}>Checkout</h2>
-              <div style={summaryRowStyle}>
+            <aside className="rounded-[1.75rem] border border-border bg-card/70 p-6">
+              <h2 className="mt-0 text-2xl font-semibold text-foreground">Checkout</h2>
+              <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                 <span>Items</span>
-                <strong>{items.length}</strong>
+                <strong className="text-foreground">{items.length}</strong>
               </div>
-              <div style={summaryRowStyle}>
+              <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
                 <span>Total</span>
-                <strong>{total} THB</strong>
+                <strong className="text-foreground">{total} THB</strong>
               </div>
 
-              <div style={{ marginTop: 18 }}>
-                <div style={miniLabelStyle}>Payment method</div>
-                <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-                  <button type="button" onClick={() => setPaymentMethod("promptpay")} style={paymentMethod === "promptpay" ? selectedMethodStyle : methodStyle}>PromptPay</button>
-                  <button type="button" onClick={() => setPaymentMethod("credit_card")} style={paymentMethod === "credit_card" ? selectedMethodStyle : methodStyle}>Credit Card</button>
+              <div className="mt-6">
+                <div className="text-xs tracking-[0.16em] text-gold">PAYMENT METHOD</div>
+                <div className="mt-3 grid gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("promptpay")}
+                    className={paymentMethod === "promptpay"
+                      ? "rounded-2xl border border-gold/40 bg-gold/15 px-4 py-3 text-left text-foreground"
+                      : "rounded-2xl border border-border bg-background/40 px-4 py-3 text-left text-muted-foreground"}
+                  >
+                    PromptPay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("credit_card")}
+                    className={paymentMethod === "credit_card"
+                      ? "rounded-2xl border border-gold/40 bg-gold/15 px-4 py-3 text-left text-foreground"
+                      : "rounded-2xl border border-border bg-background/40 px-4 py-3 text-left text-muted-foreground"}
+                  >
+                    Credit Card
+                  </button>
                 </div>
               </div>
 
-              <div style={actionRowStyle}>
-                <button type="button" onClick={checkout} style={buttonStyle} disabled={submitting}>
+              <div className="mt-6">
+                <Button type="button" onClick={checkout} className="w-full justify-center" loading={submitting}>
                   {submitting ? "กำลังสร้างออเดอร์..." : "Checkout"}
-                </button>
+                </Button>
               </div>
             </aside>
           </div>
@@ -149,23 +190,3 @@ export default function CartPage() {
     </main>
   )
 }
-
-const pageStyle = { minHeight: "100vh", padding: "32px 20px 60px", background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)", fontFamily: "Georgia, serif", color: "#2a1f18" } as const
-const shellStyle = { maxWidth: 1100, margin: "0 auto" } as const
-const headerStyle = { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", flexWrap: "wrap" as const, marginBottom: 20 } as const
-const layoutStyle = { display: "grid", gap: 18, gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)" } as const
-const cardStyle = { background: "rgba(255,255,255,0.84)", border: "1px solid rgba(111, 78, 55, 0.12)", borderRadius: 24, padding: 24, boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)" } as const
-const eyebrowStyle = { margin: 0, fontSize: 12, letterSpacing: "0.16em", color: "#9b7458" } as const
-const copyStyle = { margin: 0, color: "#6e5848", lineHeight: 1.7 } as const
-const titleStyle = { fontSize: 24, fontWeight: 700 } as const
-const metaStyle = { color: "#6e5848", fontSize: 14, marginTop: 6 } as const
-const actionRowStyle = { display: "flex", gap: 10, flexWrap: "wrap" as const, marginTop: 16 } as const
-const buttonStyle = { border: "none", borderRadius: 999, padding: "12px 18px", background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)", color: "#fffaf6", cursor: "pointer", fontSize: 14 } as const
-const smallButtonStyle = { border: "1px solid #d8c1b0", borderRadius: 999, padding: "10px 14px", background: "#fff8f2", color: "#5e4637", cursor: "pointer", fontSize: 14 } as const
-const dangerButtonStyle = { ...smallButtonStyle, background: "#fff0ee", borderColor: "#eabdb7", color: "#a03e31" } as const
-const secondaryLinkStyle = { display: "inline-block", textDecoration: "none", borderRadius: 999, padding: "12px 18px", background: "#fff8f2", border: "1px solid #dbc5b4", color: "#5f4738" } as const
-const summaryRowStyle = { display: "flex", justifyContent: "space-between", gap: 12, marginTop: 10 } as const
-const miniLabelStyle = { color: "#8b705d", fontSize: 12, letterSpacing: "0.06em" } as const
-const methodStyle = { border: "1px solid #d8c1b0", borderRadius: 18, padding: "12px 14px", background: "#fff8f2", color: "#5e4637", cursor: "pointer", textAlign: "left" as const } as const
-const selectedMethodStyle = { ...methodStyle, background: "#7c5234", color: "#fffaf6", borderColor: "#7c5234" } as const
-const errorStyle = { padding: "12px 16px", borderRadius: 14, background: "#fdeeee", color: "#b42318", marginBottom: 16 } as const

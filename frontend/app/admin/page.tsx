@@ -1,24 +1,12 @@
 "use client"
 
+import { Eye, LayoutDashboard, Package, CreditCard, CheckCircle } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { API_BASE, apiUrl } from "@/lib/api"
-import { getProductImage } from "@/lib/product-media"
-const allStats = [
-  "Protection",
-  "Purity",
-  "Telluric",
-  "Ethereality",
-  "Ominiscience",
-  "Healing",
-  "Wealth",
-  "Abundance",
-  "Intelligence",
-  "Creativity",
-  "Affection",
-  "Passion"
-]
-const orderWorkflow = ["preparing", "shipping", "completed"]
+import { apiUrl } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { cn } from "@/lib/utils"
 
 type DashboardData = {
   totalOrders: number
@@ -31,6 +19,7 @@ type PendingPayment = {
   total_price: number
   payment_bill: string | null
   createOrder: string
+  latestOrderStatus?: string
   user: {
     name: string
     surname: string
@@ -38,14 +27,12 @@ type PendingPayment = {
   }
 }
 
-type Order = {
+type AdminOrder = {
   order_id: number
   total_price: number
   payment_method: string
   latestOrderStatus: string
-  order_status: string[]
   createOrder: string
-  payment_bill?: string | null
   user: {
     name: string
     surname: string
@@ -54,108 +41,69 @@ type Order = {
   orderItems: Array<{
     orderItem_id: number
     quantity: number
-    price: number
     product: {
       product_name: string
-      category: string
     }
   }>
 }
 
-type Product = {
-  product_id: number
-  product_name: string
-  category: string
-  price: number
-  image_url?: string | null
-  stock_quantity: number
-  description?: string | null
-  main_stat: string[]
-  isActive: boolean
-}
+const tabs = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "payments", label: "ตรวจสลิป", icon: CreditCard },
+  { id: "orders", label: "คำสั่งซื้อ", icon: Package },
+]
 
-const cardStyle = {
-  background: "rgba(255,255,255,0.82)",
-  borderRadius: 24,
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  padding: 24,
-  boxShadow: "0 20px 45px rgba(74, 49, 31, 0.08)"
-} as const
+const nextStatusMap: Record<string, string | null> = {
+  paid: null,
+  preparing: "shipping",
+  shipping: "completed",
+  completed: null,
+  cancelled: null,
+}
 
 export default function AdminPage() {
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState("dashboard")
   const [token, setToken] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [error, setError] = useState("")
-  const [notice, setNotice] = useState("")
   const [dashboard, setDashboard] = useState<DashboardData | null>(null)
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([])
-  const [orders, setOrders] = useState<Order[]>([])
-  const [products, setProducts] = useState<Product[]>([])
-  const [productForm, setProductForm] = useState({
-    product_name: "",
-    category: "",
-    price: "",
-    stock_quantity: "",
-    image_url: "",
-    description: "",
-    main_stat: [] as string[]
-  })
+  const [orders, setOrders] = useState<AdminOrder[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [notice, setNotice] = useState("")
 
-  const fetchAdminData = async (authToken: string, quiet = false) => {
-    if (!quiet) {
-      setLoading(true)
-    } else {
-      setRefreshing(true)
-    }
-
+  const loadData = async (authToken: string) => {
+    setLoading(true)
     setError("")
 
     try {
-      const headers = {
-        Authorization: `Bearer ${authToken}`
-      }
-
-      const [dashboardRes, pendingRes, ordersRes, productsRes] = await Promise.all([
-        fetch(apiUrl("/api/admin/dashboard"), { headers }),
-        fetch(apiUrl("/api/admin/pending-payments"), { headers }),
-        fetch(apiUrl("/api/orders"), { headers }),
-        fetch(apiUrl("/api/products?active=true&limit=100"), { headers })
+      const [dashboardRes, paymentsRes, ordersRes] = await Promise.all([
+        fetch(apiUrl("/api/admin/dashboard"), {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }),
+        fetch(apiUrl("/api/admin/pending-payments"), {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }),
+        fetch(apiUrl("/api/orders"), {
+          headers: { Authorization: `Bearer ${authToken}` },
+        }),
       ])
 
-      const [dashboardData, pendingData, ordersData, productsData] = await Promise.all([
-        dashboardRes.json(),
-        pendingRes.json(),
-        ordersRes.json(),
-        productsRes.json()
-      ])
+      const dashboardData = await dashboardRes.json()
+      const paymentsData = await paymentsRes.json()
+      const ordersData = await ordersRes.json()
 
-      if (!dashboardRes.ok) {
-        throw new Error(dashboardData.error || "โหลด dashboard ไม่สำเร็จ")
-      }
-
-      if (!pendingRes.ok) {
-        throw new Error(pendingData.error || "โหลดรายการสลิปไม่สำเร็จ")
-      }
-
-      if (!ordersRes.ok) {
-        throw new Error(ordersData.error || "โหลดออเดอร์ไม่สำเร็จ")
-      }
-
-      if (!productsRes.ok) {
-        throw new Error(productsData.error || "โหลดสินค้าไม่สำเร็จ")
-      }
+      if (!dashboardRes.ok) throw new Error(dashboardData.error || "โหลด dashboard ไม่สำเร็จ")
+      if (!paymentsRes.ok) throw new Error(paymentsData.error || "โหลดรายการสลิปไม่สำเร็จ")
+      if (!ordersRes.ok) throw new Error(ordersData.error || "โหลดรายการออเดอร์ไม่สำเร็จ")
 
       setDashboard(dashboardData)
-      setPendingPayments(pendingData)
+      setPendingPayments(paymentsData)
       setOrders(ordersData)
-      setProducts(productsData.data ?? [])
     } catch (err: any) {
       setError(err.message || "โหลดข้อมูลหลังบ้านไม่สำเร็จ")
     } finally {
       setLoading(false)
-      setRefreshing(false)
     }
   }
 
@@ -167,34 +115,16 @@ export default function AdminPage() {
       return
     }
 
-    try {
-      const payload = JSON.parse(atob(storedToken.split(".")[1]))
-
-      if (!payload.isAdmin) {
-        router.push("/")
-        return
-      }
-
-      setToken(storedToken)
-      fetchAdminData(storedToken)
-    } catch {
-      router.push("/login")
-    }
+    setToken(storedToken)
+    loadData(storedToken)
   }, [router])
 
-  const showNotice = (message: string) => {
-    setNotice(message)
-    setTimeout(() => setNotice(""), 2500)
-  }
-
   const approvePayment = async (orderId: number) => {
-    if (!token) return
-
     const res = await fetch(apiUrl(`/api/orders/${orderId}/approve`), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     })
 
     const data = await res.json()
@@ -204,20 +134,18 @@ export default function AdminPage() {
       return
     }
 
-    showNotice(`อนุมัติการชำระของออเดอร์ #${orderId} แล้ว`)
-    fetchAdminData(token, true)
+    setNotice(`อนุมัติสลิปของออเดอร์ #${orderId} แล้ว`)
+    loadData(token)
   }
 
   const updateOrderStatus = async (orderId: number, status: string) => {
-    if (!token) return
-
     const res = await fetch(apiUrl(`/api/orders/${orderId}/status`), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ status })
+      body: JSON.stringify({ status }),
     })
 
     const data = await res.json()
@@ -227,669 +155,207 @@ export default function AdminPage() {
       return
     }
 
-    showNotice(`อัปเดตออเดอร์ #${orderId} เป็น ${status} แล้ว`)
-    fetchAdminData(token, true)
+    setNotice(`อัปเดตออเดอร์ #${orderId} เป็น ${status} แล้ว`)
+    loadData(token)
   }
 
-  const toggleStat = (stat: string) => {
-    setProductForm(current => {
-      const exists = current.main_stat.includes(stat)
-      return {
-        ...current,
-        main_stat: exists
-          ? current.main_stat.filter(item => item !== stat)
-          : [...current.main_stat, stat]
-      }
-    })
-  }
-
-  const createProduct = async () => {
-    if (!token) return
-
-    const res = await fetch(apiUrl("/api/products"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        ...productForm,
-        price: Number(productForm.price),
-        stock_quantity: Number(productForm.stock_quantity),
-        image_url: productForm.image_url || undefined
-      })
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error || "สร้างสินค้าไม่สำเร็จ")
-      return
-    }
-
-    setProductForm({
-      product_name: "",
-      category: "",
-      price: "",
-      stock_quantity: "",
-      image_url: "",
-      description: "",
-      main_stat: []
-    })
-    showNotice(`เพิ่มสินค้า ${data.product_name} แล้ว`)
-    fetchAdminData(token, true)
-  }
-
-  const deactivateProduct = async (productId: number) => {
-    if (!token) return
-
-    const res = await fetch(apiUrl(`/api/products/${productId}`), {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    const data = await res.json()
-
-    if (!res.ok) {
-      setError(data.error || "ปิดการขายสินค้าไม่สำเร็จ")
-      return
-    }
-
-    showNotice(`ปิดการขายสินค้า #${productId} แล้ว`)
-    fetchAdminData(token, true)
-  }
-
-  if (loading) {
-    return (
-      <main style={pageStyle}>
-        <div style={{ ...cardStyle, maxWidth: 520, margin: "80px auto" }}>
-          <h1 style={{ marginTop: 0 }}>Admin Workspace</h1>
-          <p>กำลังโหลดข้อมูลหลังบ้าน...</p>
-        </div>
-      </main>
-    )
-  }
+  const stats = dashboard
+    ? [
+        { label: "ออเดอร์ทั้งหมด", value: dashboard.totalOrders, icon: Package },
+        { label: "รายได้รวม", value: `${dashboard.totalRevenue} THB`, icon: CreditCard },
+        { label: "รอตรวจสลิป", value: pendingPayments.length, icon: Eye },
+        { label: "กำลังเตรียม", value: dashboard.statusCount.preparing || 0, icon: CheckCircle },
+      ]
+    : []
 
   return (
-    <main style={pageStyle}>
-      <div style={{ maxWidth: 1320, margin: "0 auto" }}>
-        <header style={{ marginBottom: 24 }}>
-          <p style={eyebrowStyle}>FLORDER ADMIN</p>
-          <div style={headerRowStyle}>
-            <div>
-              <h1 style={{ margin: "8px 0 10px", fontSize: 40 }}>Admin Workspace</h1>
-              <p style={{ margin: 0, color: "#695546", lineHeight: 1.7, maxWidth: 760 }}>
-                หน้านี้รวม dashboard, ตรวจสลิป, จัดการออเดอร์ และจัดการสินค้าไว้ในที่เดียว
-                เพื่อให้หลังบ้านใช้งาน flow หลักได้จริง
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => token && fetchAdminData(token, true)}
-              style={primaryButtonStyle}
-            >
-              {refreshing ? "กำลังรีเฟรช..." : "รีเฟรชข้อมูล"}
-            </button>
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-7xl">
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-xs tracking-[0.18em] text-gold">ADMIN WORKSPACE</div>
+            <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
+              จัดการระบบ Florder
+            </h1>
+            <p className="mt-3 max-w-3xl text-muted-foreground">
+              ดูภาพรวมออเดอร์ ตรวจสลิป และขยับ workflow ของคำสั่งซื้อจากหน้าเดียว
+            </p>
           </div>
-        </header>
+          <Button variant="ghost" onClick={() => loadData(token)} disabled={loading}>
+            รีเฟรชข้อมูล
+          </Button>
+        </div>
 
-        {error ? <p style={errorStyle}>{error}</p> : null}
-        {notice ? <p style={noticeStyle}>{notice}</p> : null}
-
-        {dashboard ? (
-          <section style={metricGridStyle}>
-            <MetricCard label="Total Orders" value={String(dashboard.totalOrders)} />
-            <MetricCard
-              label="Completed Revenue"
-              value={`${dashboard.totalRevenue.toLocaleString()} THB`}
-            />
-            <MetricCard label="Pending Payment" value={String(dashboard.statusCount.paid || 0)} />
-            <MetricCard
-              label="In Delivery Flow"
-              value={String(
-                (dashboard.statusCount.preparing || 0) + (dashboard.statusCount.shipping || 0)
+        <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                activeTab === tab.id
+                  ? "bg-foreground text-background"
+                  : "bg-card text-muted-foreground hover:text-foreground"
               )}
-            />
-          </section>
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {error ? (
+          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {error}
+          </div>
         ) : null}
 
-        {dashboard ? (
-          <section style={{ ...cardStyle, marginTop: 20 }}>
-            <h2 style={sectionTitleStyle}>Order Status Snapshot</h2>
-            <div style={statusGridStyle}>
-              {Object.entries(dashboard.statusCount).map(([status, count]) => (
-                <div key={status} style={statusCardStyle}>
-                  <div style={{ fontSize: 13, color: "#846957", textTransform: "capitalize" }}>
-                    {status}
+        {notice ? (
+          <div className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+            {notice}
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+            กำลังโหลดข้อมูลหลังบ้าน...
+          </div>
+        ) : null}
+
+        {!loading && activeTab === "dashboard" ? (
+          <section className="space-y-6">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-[1.5rem] border border-border bg-card/70 p-5">
+                  <div className="flex items-center justify-between">
+                    <stat.icon className="h-5 w-5 text-gold" />
                   </div>
-                  <div style={{ marginTop: 8, fontSize: 28, fontWeight: 700 }}>{count}</div>
+                  <div className="mt-4 text-3xl font-semibold text-foreground">{stat.value}</div>
+                  <div className="mt-2 text-sm text-muted-foreground">{stat.label}</div>
                 </div>
               ))}
             </div>
+
+            <div className="rounded-[2rem] border border-border bg-card/70 p-6">
+              <div className="text-xs tracking-[0.18em] text-gold">STATUS SNAPSHOT</div>
+              <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+                {Object.entries(dashboard?.statusCount || {}).map(([status, value]) => (
+                  <div key={status} className="rounded-2xl border border-border bg-background/40 p-4">
+                    <StatusBadge status={status} />
+                    <div className="mt-3 text-2xl font-semibold text-foreground">{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
         ) : null}
 
-        <section style={{ ...cardStyle, marginTop: 20 }}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={sectionTitleStyle}>Pending Payment Slips</h2>
-              <p style={sectionCopyStyle}>ตรวจสลิปและกดอนุมัติให้ออเดอร์เข้าสถานะ preparing</p>
-            </div>
-          </div>
-
-          {pendingPayments.length === 0 ? (
-            <p style={emptyTextStyle}>ตอนนี้ยังไม่มีสลิปรออนุมัติ</p>
-          ) : (
-            <div style={listGridStyle}>
-              {pendingPayments.map(order => (
-                <article key={order.order_id} style={itemCardStyle}>
-                  <div>
-                    <div style={itemTitleStyle}>Order #{order.order_id}</div>
-                    <div style={itemMetaStyle}>
-                      {order.user.name} {order.user.surname} • {order.user.email}
-                    </div>
-                    <div style={itemMetaStyle}>
-                      {new Date(order.createOrder).toLocaleString()} • {order.total_price} THB
-                    </div>
-                  </div>
-
-                  {order.payment_bill ? (
-                    <a
-                      href={`${API_BASE}${order.payment_bill}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={linkButtonStyle}
-                    >
-                      เปิดดูสลิป
-                    </a>
-                  ) : null}
-
-                  <button
-                    type="button"
-                    onClick={() => approvePayment(order.order_id)}
-                    style={primaryButtonStyle}
-                  >
-                    อนุมัติการชำระ
-                  </button>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section style={{ ...cardStyle, marginTop: 20 }}>
-          <div style={sectionHeaderStyle}>
-            <div>
-              <h2 style={sectionTitleStyle}>Orders</h2>
-              <p style={sectionCopyStyle}>ดูออเดอร์ทั้งหมดและอัปเดต workflow จากหลังบ้าน</p>
-            </div>
-          </div>
-
-          <div style={tableWrapStyle}>
-            <table style={tableStyle}>
-              <thead>
-                <tr>
-                  <TableHead>Order</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Payment</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Action</TableHead>
-                </tr>
-              </thead>
-              <tbody>
-                {orders.map(order => {
-                  const nextStatuses = orderWorkflow.filter(
-                    status => orderWorkflow.indexOf(status) > orderWorkflow.indexOf(order.latestOrderStatus)
-                  )
-
-                  return (
-                    <tr key={order.order_id} style={tableRowStyle}>
-                      <TableCell>
-                        <div style={itemTitleStyle}>#{order.order_id}</div>
-                        <div style={itemMetaStyle}>{new Date(order.createOrder).toLocaleString()}</div>
-                        <div style={itemMetaStyle}>{order.total_price} THB</div>
-                      </TableCell>
-                      <TableCell>
-                        <div>{order.user.name} {order.user.surname}</div>
-                        <div style={itemMetaStyle}>{order.user.email}</div>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ display: "grid", gap: 6 }}>
-                          {order.orderItems.map(item => (
-                            <div key={item.orderItem_id} style={itemMetaStyle}>
-                              {item.product.product_name} x{item.quantity}
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ textTransform: "capitalize" }}>{order.payment_method.replace("_", " ")}</div>
-                        {order.payment_bill ? (
-                          <a
-                            href={`${API_BASE}${order.payment_bill}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            style={{ ...linkButtonStyle, marginTop: 8, display: "inline-block" }}
-                          >
-                            ดูสลิป
-                          </a>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        <span style={badgeStyle}>{order.latestOrderStatus}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ display: "grid", gap: 8 }}>
-                          {order.latestOrderStatus === "cancelled" || order.latestOrderStatus === "completed" ? (
-                            <span style={itemMetaStyle}>ไม่มี action ต่อ</span>
-                          ) : nextStatuses.length > 0 ? (
-                            nextStatuses.map(status => (
-                              <button
-                                key={status}
-                                type="button"
-                                onClick={() => updateOrderStatus(order.order_id, status)}
-                                style={secondaryButtonStyle}
-                              >
-                                เปลี่ยนเป็น {status}
-                              </button>
-                            ))
-                          ) : (
-                            <span style={itemMetaStyle}>รอ action ก่อนหน้า</span>
-                          )}
-                        </div>
-                      </TableCell>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section style={productSectionStyle}>
-          <div style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Add Product</h2>
-            <p style={sectionCopyStyle}>เพิ่มสินค้าใหม่พร้อมผูก stat สำหรับระบบแนะนำสินค้า</p>
-
-            <div style={formGridStyle}>
-              <input
-                value={productForm.product_name}
-                onChange={event =>
-                  setProductForm(current => ({ ...current, product_name: event.target.value }))
-                }
-                placeholder="Product name"
-                style={inputStyle}
-              />
-              <input
-                value={productForm.category}
-                onChange={event =>
-                  setProductForm(current => ({ ...current, category: event.target.value }))
-                }
-                placeholder="Category"
-                style={inputStyle}
-              />
-              <input
-                value={productForm.price}
-                onChange={event =>
-                  setProductForm(current => ({ ...current, price: event.target.value }))
-                }
-                placeholder="Price"
-                type="number"
-                style={inputStyle}
-              />
-              <input
-                value={productForm.stock_quantity}
-                onChange={event =>
-                  setProductForm(current => ({ ...current, stock_quantity: event.target.value }))
-                }
-                placeholder="Stock"
-                type="number"
-                style={inputStyle}
-              />
-              <input
-                value={productForm.image_url}
-                onChange={event =>
-                  setProductForm(current => ({ ...current, image_url: event.target.value }))
-                }
-                placeholder="Image URL"
-                style={inputStyle}
-              />
-            </div>
-
-            <textarea
-              value={productForm.description}
-              onChange={event =>
-                setProductForm(current => ({ ...current, description: event.target.value }))
-              }
-              placeholder="Description"
-              rows={4}
-              style={{ ...inputStyle, marginTop: 14, resize: "vertical", width: "100%" }}
-            />
-
-            <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 14, color: "#735a49", marginBottom: 10 }}>Main stats</div>
-              <div style={chipWrapStyle}>
-                {allStats.map(stat => {
-                  const active = productForm.main_stat.includes(stat)
-                  return (
-                    <button
-                      key={stat}
-                      type="button"
-                      onClick={() => toggleStat(stat)}
-                      style={{
-                        ...chipStyle,
-                        background: active ? "#6f4e37" : "#fff8f2",
-                        color: active ? "#fff9f3" : "#5a4537",
-                        borderColor: active ? "#6f4e37" : "#d8c3b5"
-                      }}
-                    >
-                      {stat}
-                    </button>
-                  )
-                })}
+        {!loading && activeTab === "payments" ? (
+          <section className="space-y-4">
+            {pendingPayments.length === 0 ? (
+              <div className="rounded-[2rem] border border-border bg-card/70 p-8 text-center text-muted-foreground">
+                ตอนนี้ไม่มีสลิปรอตรวจ
               </div>
-            </div>
-
-            <button type="button" onClick={createProduct} style={{ ...primaryButtonStyle, marginTop: 18 }}>
-              เพิ่มสินค้า
-            </button>
-          </div>
-
-          <div style={cardStyle}>
-            <h2 style={sectionTitleStyle}>Active Products</h2>
-            <p style={sectionCopyStyle}>จัดการรายการสินค้าที่เปิดขายอยู่ตอนนี้</p>
-
-            <div style={{ display: "grid", gap: 12 }}>
-              {products.map(product => (
-                <article key={product.product_id} style={itemCardStyle}>
-                  <div style={{ display: "grid", gap: 12 }}>
-                    <img
-                      src={getProductImage(product)}
-                      alt={product.product_name}
-                      style={{
-                        width: "100%",
-                        height: 180,
-                        objectFit: "cover",
-                        borderRadius: 16,
-                        border: "1px solid #ead7c8"
-                      }}
-                    />
-                    <div style={itemTitleStyle}>
-                      {product.product_name} <span style={itemMetaStyle}>#{product.product_id}</span>
+            ) : (
+              pendingPayments.map((payment) => (
+                <article
+                  key={payment.order_id}
+                  className="rounded-[1.75rem] border border-border bg-card/70 p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="text-lg font-semibold text-foreground">
+                        Order #{payment.order_id}
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {payment.user.name} {payment.user.surname} • {payment.user.email}
+                      </div>
                     </div>
-                    <div style={itemMetaStyle}>
-                      {product.category} • {product.price} THB • stock {product.stock_quantity}
-                    </div>
-                    <div style={{ ...itemMetaStyle, marginTop: 6 }}>
-                      {product.main_stat.join(", ")}
+                    <div className="text-right">
+                      <div className="text-lg font-semibold text-foreground">
+                        {payment.total_price} THB
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {new Date(payment.createOrder).toLocaleString()}
+                      </div>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => deactivateProduct(product.product_id)}
-                    style={dangerButtonStyle}
-                  >
-                    ปิดการขาย
-                  </button>
+                  <div className="mt-5 flex flex-wrap gap-3">
+                    {payment.payment_bill ? (
+                      <a
+                        href={`${apiUrl("")}${payment.payment_bill}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex"
+                      >
+                        <Button variant="ghost">
+                          <Eye className="h-4 w-4" />
+                          ดูสลิป
+                        </Button>
+                      </a>
+                    ) : null}
+                    <Button onClick={() => approvePayment(payment.order_id)}>
+                      อนุมัติสลิป
+                    </Button>
+                  </div>
                 </article>
-              ))}
-            </div>
-          </div>
-        </section>
+              ))
+            )}
+          </section>
+        ) : null}
+
+        {!loading && activeTab === "orders" ? (
+          <section className="space-y-4">
+            {orders.map((order) => {
+              const nextStatus = nextStatusMap[order.latestOrderStatus]
+
+              return (
+                <article
+                  key={order.order_id}
+                  className="rounded-[1.75rem] border border-border bg-card/70 p-5"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                      <div className="text-lg font-semibold text-foreground">
+                        Order #{order.order_id}
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        {order.user.name} {order.user.surname} • {order.user.email}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <StatusBadge status={order.latestOrderStatus} />
+                      <div className="font-semibold text-foreground">{order.total_price} THB</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-2">
+                    {order.orderItems.map((item) => (
+                      <div
+                        key={item.orderItem_id}
+                        className="flex items-center justify-between rounded-2xl border border-border bg-background/40 px-4 py-3"
+                      >
+                        <span className="text-foreground">{item.product.product_name}</span>
+                        <span className="text-sm text-muted-foreground">x{item.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {nextStatus ? (
+                    <div className="mt-5">
+                      <Button variant="gold" onClick={() => updateOrderStatus(order.order_id, nextStatus)}>
+                        อัปเดตเป็น {nextStatus}
+                      </Button>
+                    </div>
+                  ) : null}
+                </article>
+              )
+            })}
+          </section>
+        ) : null}
       </div>
     </main>
   )
 }
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={metricCardStyle}>
-      <div style={{ color: "#8d705d", fontSize: 13, letterSpacing: "0.06em" }}>{label}</div>
-      <div style={{ fontSize: 34, fontWeight: 700, marginTop: 10 }}>{value}</div>
-    </div>
-  )
-}
-
-function TableHead({ children }: { children: React.ReactNode }) {
-  return (
-    <th
-      style={{
-        textAlign: "left",
-        padding: "14px 16px",
-        fontSize: 13,
-        color: "#846a58",
-        fontWeight: 600,
-        borderBottom: "1px solid #ead9cd"
-      }}
-    >
-      {children}
-    </th>
-  )
-}
-
-function TableCell({ children }: { children: React.ReactNode }) {
-  return (
-    <td
-      style={{
-        verticalAlign: "top",
-        padding: "16px",
-        borderBottom: "1px solid #f0e2d8",
-        fontSize: 14,
-        color: "#3e2d22"
-      }}
-    >
-      {children}
-    </td>
-  )
-}
-
-const pageStyle = {
-  minHeight: "100vh",
-  padding: "32px 20px 60px",
-  background: "linear-gradient(180deg, #f6efe6 0%, #efe3d6 100%)",
-  color: "#291d16",
-  fontFamily: "Georgia, serif"
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.18em",
-  color: "#967055"
-} as const
-
-const headerRowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 20,
-  alignItems: "flex-start",
-  flexWrap: "wrap"
-} as const
-
-const metricGridStyle = {
-  display: "grid",
-  gap: 16,
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))"
-} as const
-
-const metricCardStyle = {
-  ...cardStyle,
-  padding: 20
-} as const
-
-const statusGridStyle = {
-  display: "grid",
-  gap: 14,
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))"
-} as const
-
-const statusCardStyle = {
-  background: "#fff8f3",
-  borderRadius: 18,
-  border: "1px solid #ead7c8",
-  padding: 16
-} as const
-
-const sectionHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 16,
-  marginBottom: 18,
-  flexWrap: "wrap"
-} as const
-
-const sectionTitleStyle = {
-  margin: 0,
-  fontSize: 28
-} as const
-
-const sectionCopyStyle = {
-  margin: "8px 0 0",
-  color: "#735a49",
-  lineHeight: 1.6
-} as const
-
-const listGridStyle = {
-  display: "grid",
-  gap: 14
-} as const
-
-const itemCardStyle = {
-  display: "grid",
-  gap: 12,
-  background: "#fff9f4",
-  border: "1px solid #ead7c8",
-  borderRadius: 20,
-  padding: 18
-} as const
-
-const itemTitleStyle = {
-  fontSize: 18,
-  fontWeight: 700
-} as const
-
-const itemMetaStyle = {
-  color: "#715947",
-  fontSize: 14
-} as const
-
-const tableWrapStyle = {
-  overflowX: "auto"
-} as const
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse" as const,
-  minWidth: 980
-} as const
-
-const tableRowStyle = {
-  background: "rgba(255,255,255,0.52)"
-} as const
-
-const badgeStyle = {
-  display: "inline-block",
-  padding: "8px 12px",
-  borderRadius: 999,
-  background: "#f0dfd2",
-  color: "#5d4433",
-  fontSize: 13,
-  textTransform: "capitalize" as const
-} as const
-
-const productSectionStyle = {
-  display: "grid",
-  gap: 20,
-  gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-  marginTop: 20
-} as const
-
-const formGridStyle = {
-  display: "grid",
-  gap: 12,
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))"
-} as const
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box" as const,
-  padding: "14px 16px",
-  borderRadius: 16,
-  border: "1px solid #d9c6b6",
-  background: "#fffdfa",
-  color: "#2f2118",
-  fontSize: 14
-} as const
-
-const chipWrapStyle = {
-  display: "flex",
-  gap: 8,
-  flexWrap: "wrap" as const
-} as const
-
-const chipStyle = {
-  borderRadius: 999,
-  border: "1px solid #d8c3b5",
-  padding: "10px 14px",
-  cursor: "pointer",
-  fontSize: 13
-} as const
-
-const primaryButtonStyle = {
-  border: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7d5233 0%, #b97743 100%)",
-  color: "#fffaf5",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const secondaryButtonStyle = {
-  border: "1px solid #d7c2b1",
-  borderRadius: 999,
-  padding: "10px 14px",
-  background: "#fff8f2",
-  color: "#5a4435",
-  cursor: "pointer",
-  fontSize: 13
-} as const
-
-const dangerButtonStyle = {
-  ...secondaryButtonStyle,
-  background: "#fff1ef",
-  borderColor: "#edc3be",
-  color: "#9b3e30"
-} as const
-
-const linkButtonStyle = {
-  color: "#7d5233",
-  textDecoration: "none",
-  fontSize: 14
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginBottom: 16
-} as const
-
-const noticeStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#edf7ef",
-  color: "#146c2e",
-  marginBottom: 16
-} as const
-
-const emptyTextStyle = {
-  color: "#735a49",
-  margin: 0
-} as const

@@ -1,28 +1,22 @@
-import type { Metadata, Viewport } from "next"
+import type { Metadata } from "next"
+import Footer from "@/components/footer"
 import Navbar from "@/components/navbar"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Florder — Fortune and Flow",
-  description: "ดูดวงออนไลน์และเลือกสินค้าใน flow เดียว",
+  title: "Florder",
+  description: "Fortune and shop demo experience",
 }
 
-export const viewport: Viewport = {
-  themeColor: "#0d0b1a",
-  width: "device-width",
-  initialScale: 1,
-}
-
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="th">
-      <body className="font-body antialiased min-h-screen bg-background text-foreground">
-        <Navbar />
-        {children}
+      <body className="min-h-screen bg-background text-foreground">
+        <div className="flex min-h-screen flex-col">
+          <Navbar />
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </div>
       </body>
     </html>
   )

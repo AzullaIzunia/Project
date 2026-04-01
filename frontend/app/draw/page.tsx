@@ -2,131 +2,55 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { ArrowLeft, CheckCircle, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { apiUrl } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
-type ChoiceOption = {
-  id: string
-  title: string
-  description: string
-  stat: string
-  type: "plus" | "minus"
-}
-
-type Question = {
-  id: string
-  prompt: string
-  subtitle: string
-  options: ChoiceOption[]
-}
-
-const questions: Question[] = [
+const questions = [
   {
-    id: "desire",
-    prompt: "ตอนนี้คุณอยากให้ชีวิตขยับไปทางไหนมากที่สุด",
-    subtitle: "เลือกสิ่งที่อยากดึงเข้ามาในช่วงนี้",
+    id: 1,
+    question: "ตอนนี้คุณรู้สึกอย่างไรกับช่วงชีวิตนี้",
     options: [
-      {
-        id: "desire-healing",
-        title: "ใจที่เบาขึ้น",
-        description: "อยากฟื้นตัว พักใจ และค่อย ๆ กลับมาสมดุล",
-        stat: "Healing",
-        type: "plus"
-      },
-      {
-        id: "desire-wealth",
-        title: "งานและเงินที่มั่นคง",
-        description: "อยากให้โอกาส การเงิน และความมั่นใจไหลลื่นขึ้น",
-        stat: "Wealth",
-        type: "plus"
-      },
-      {
-        id: "desire-creativity",
-        title: "แรงบันดาลใจใหม่",
-        description: "อยากปลุกไอเดีย ความสนุก และพลังสร้างสรรค์",
-        stat: "Creativity",
-        type: "plus"
-      }
-    ]
+      { id: "a", label: "นิ่งและชัดเจน", choice: { stat: "Purity", type: "plus" as const } },
+      { id: "b", label: "กำลังค้นหาทิศทาง", choice: { stat: "Healing", type: "plus" as const } },
+      { id: "c", label: "อยากเปลี่ยนแปลงบางอย่าง", choice: { stat: "Passion", type: "plus" as const } },
+      { id: "d", label: "กังวลเรื่องความมั่นคง", choice: { stat: "Wealth", type: "plus" as const } },
+    ],
   },
   {
-    id: "release",
-    prompt: "พลังแบบไหนที่คุณอยากปล่อยวางออกไป",
-    subtitle: "เลือกสิ่งที่รู้สึกว่ากำลังกดทับคุณอยู่",
+    id: 2,
+    question: "สิ่งที่คุณอยากให้ชีวิตดีขึ้นมากที่สุดคืออะไร",
     options: [
-      {
-        id: "release-purity",
-        title: "ความคาดหวังที่กดดัน",
-        description: "อยากเลิกกังวลกับภาพที่ต้องสมบูรณ์แบบ",
-        stat: "Purity",
-        type: "minus"
-      },
-      {
-        id: "release-passion",
-        title: "อารมณ์ที่ร้อนเกินไป",
-        description: "อยากลดความหุนหัน ความเร่งรีบ หรือความสัมพันธ์ที่ปั่นป่วน",
-        stat: "Passion",
-        type: "minus"
-      },
-      {
-        id: "release-wealth",
-        title: "ความเครียดเรื่องทรัพยากร",
-        description: "อยากปล่อยความกลัวเรื่องเงิน งาน หรือความมั่นคง",
-        stat: "Wealth",
-        type: "minus"
-      }
-    ]
+      { id: "a", label: "ความรักและความสัมพันธ์", choice: { stat: "Charm", type: "plus" as const } },
+      { id: "b", label: "งานและโอกาสใหม่", choice: { stat: "Creativity", type: "plus" as const } },
+      { id: "c", label: "โชคลาภและการเงิน", choice: { stat: "Abundance", type: "plus" as const } },
+      { id: "d", label: "พลังใจและการฟื้นตัว", choice: { stat: "Healing", type: "plus" as const } },
+    ],
   },
   {
-    id: "focus",
-    prompt: "ถ้าจักรวาลจะส่งข้อความมา คุณอยากให้แตะเรื่องไหนที่สุด",
-    subtitle: "เลือกหัวข้อที่อยากได้รับคำตอบมากที่สุด",
+    id: 3,
+    question: "วันนี้คุณอยากเปิดไพ่เพื่อถามเรื่องอะไร",
     options: [
-      {
-        id: "focus-healing",
-        title: "การเยียวยา",
-        description: "อยากรู้ว่าควรดูแลใจและตัวเองอย่างไรต่อ",
-        stat: "Healing",
-        type: "plus"
-      },
-      {
-        id: "focus-purity",
-        title: "ความชัดเจนในใจ",
-        description: "อยากเคลียร์ความสับสนและมองภาพให้ชัดขึ้น",
-        stat: "Purity",
-        type: "plus"
-      },
-      {
-        id: "focus-passion",
-        title: "ความสัมพันธ์และความรู้สึก",
-        description: "อยากรู้ทิศทางของหัวใจและแรงดึงดูดที่กำลังเกิดขึ้น",
-        stat: "Passion",
-        type: "plus"
-      }
-    ]
-  }
+      { id: "a", label: "ทางเลือกที่ดีที่สุดตอนนี้", choice: { stat: "Purity", type: "minus" as const } },
+      { id: "b", label: "โอกาสที่กำลังเข้ามา", choice: { stat: "Wealth", type: "plus" as const } },
+      { id: "c", label: "สิ่งที่ควรปล่อยวาง", choice: { stat: "Passion", type: "minus" as const } },
+      { id: "d", label: "พลังที่ควรดึงมาใช้", choice: { stat: "Charm", type: "plus" as const } },
+    ],
+  },
 ]
 
 export default function DrawPage() {
   const router = useRouter()
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, ChoiceOption>>({})
+  const [step, setStep] = useState(0)
+  const [answers, setAnswers] = useState<Record<number, string>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  const currentQuestion = questions[currentIndex]
-  const currentAnswer = answers[currentQuestion.id]
-  const isLastQuestion = currentIndex === questions.length - 1
-  const canSubmit = questions.every(question => answers[question.id])
+  const currentQuestion = questions[step]
+  const progress = ((step + 1) / questions.length) * 100
 
-  const selectOption = (questionId: string, option: ChoiceOption) => {
-    setAnswers(current => ({
-      ...current,
-      [questionId]: option
-    }))
-    setError("")
-  }
-
-  const submit = async () => {
+  const handleSubmit = async () => {
     const token = localStorage.getItem("token")
 
     if (!token) {
@@ -134,255 +58,125 @@ export default function DrawPage() {
       return
     }
 
-    if (!canSubmit) {
-      setError("กรุณาตอบคำถามให้ครบก่อนเริ่มดูดวง")
+    const choices = questions.map((question) => {
+      const selectedOption = question.options.find((option) => option.id === answers[question.id])
+      return selectedOption?.choice
+    }).filter(Boolean)
+
+    if (choices.length !== questions.length) {
+      setError("กรุณาตอบคำถามให้ครบก่อนเปิดไพ่")
       return
     }
 
     setLoading(true)
     setError("")
 
-    const selectedChoices = questions.map(question => {
-      const option = answers[question.id]
-      return {
-        stat: option.stat,
-        type: option.type
-      }
+    const res = await fetch(apiUrl("/api/fate/draw"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        witch_id: 1,
+        choices,
+      }),
     })
 
-    try {
-      const res = await fetch(apiUrl("/api/fate/draw"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          witch_id: 1,
-          choices: selectedChoices
-        })
-      })
+    const data = await res.json()
 
-      const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || "เริ่มดูดวงไม่สำเร็จ")
-        setLoading(false)
-        return
-      }
-
-      localStorage.setItem("draw", JSON.stringify(data))
-      router.push("/choose")
-    } catch {
-      setError("ไม่สามารถเชื่อมต่อระบบดูดวงได้")
+    if (!res.ok) {
+      setError(data.error || "ไม่สามารถเปิดทางเลือกไพ่ได้")
       setLoading(false)
+      return
     }
+
+    localStorage.setItem("draw", JSON.stringify(data))
+    router.push("/choose")
   }
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "32px 20px",
-        background:
-          "radial-gradient(circle at top, #f9e7cf 0%, #f5efe6 38%, #e7dccd 100%)",
-        color: "#2d1f16",
-        fontFamily: "Georgia, serif"
-      }}
-    >
-      <div
-        style={{
-          maxWidth: 760,
-          margin: "0 auto",
-          background: "rgba(255,255,255,0.78)",
-          border: "1px solid rgba(84, 54, 34, 0.12)",
-          borderRadius: 28,
-          padding: 28,
-          boxShadow: "0 22px 60px rgba(84, 54, 34, 0.12)",
-          backdropFilter: "blur(10px)"
-        }}
-      >
-        <p style={{ letterSpacing: "0.18em", fontSize: 12, margin: 0, color: "#8b5e3c" }}>
-          FLORDER DIVINATION
-        </p>
-        <h1 style={{ fontSize: 36, margin: "12px 0 10px" }}>ตอบคำถามเพื่อเปิดคำทำนาย</h1>
-        <p style={{ margin: 0, fontSize: 16, lineHeight: 1.7, color: "#5f4a3a" }}>
-          เราจะใช้คำตอบ 3 ข้อของคุณเพื่อปรับพลังในการดูดวง แล้วคัดตัวเลือกคำทำนายที่เหมาะกับช่วงเวลานี้
-        </p>
-
-        <div style={{ marginTop: 24 }}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              fontSize: 14,
-              color: "#7a634f",
-              marginBottom: 8
-            }}
-          >
-            <span>
-              คำถาม {currentIndex + 1} / {questions.length}
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-12">
+          <div className="mb-3 flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              คำถามที่ {step + 1} จาก {questions.length}
             </span>
-            <span>{Math.round(((currentIndex + 1) / questions.length) * 100)}%</span>
+            <span className="font-medium text-foreground">{Math.round(progress)}%</span>
           </div>
-          <div
-            style={{
-              height: 10,
-              borderRadius: 999,
-              background: "#eadccf",
-              overflow: "hidden"
-            }}
-          >
+          <div className="h-2 overflow-hidden rounded-full bg-secondary">
             <div
-              style={{
-                width: `${((currentIndex + 1) / questions.length) * 100}%`,
-                height: "100%",
-                background: "linear-gradient(90deg, #b77542 0%, #d7a35e 100%)"
-              }}
+              className="h-full rounded-full bg-gold transition-all duration-500"
+              style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
-        <section style={{ marginTop: 28 }}>
-          <p style={{ margin: "0 0 8px", color: "#9c6d48", fontSize: 13, letterSpacing: "0.08em" }}>
-            {currentQuestion.id.toUpperCase()}
-          </p>
-          <h2 style={{ margin: "0 0 8px", fontSize: 28 }}>{currentQuestion.prompt}</h2>
-          <p style={{ margin: 0, color: "#6a5443", fontSize: 15 }}>
-            {currentQuestion.subtitle}
-          </p>
+        <div className="mystic-card rounded-[2rem] p-6 sm:p-8">
+          <div className="text-xs tracking-[0.18em] text-gold">FORTUNE QUESTIONS</div>
+          <h1 className="mt-4 text-3xl font-semibold leading-tight text-foreground md:text-4xl">
+            {currentQuestion.question}
+          </h1>
 
-          <div
-            style={{
-              display: "grid",
-              gap: 14,
-              marginTop: 22
-            }}
-          >
-            {currentQuestion.options.map(option => {
-              const active = currentAnswer?.id === option.id
+          <div className="mt-8 space-y-3">
+            {currentQuestion.options.map((option) => {
+              const isSelected = answers[currentQuestion.id] === option.id
 
               return (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => selectOption(currentQuestion.id, option)}
-                  style={{
-                    textAlign: "left",
-                    padding: "18px 18px 18px 20px",
-                    borderRadius: 20,
-                    border: active ? "2px solid #b77542" : "1px solid #dbc5b3",
-                    background: active ? "#fff5ea" : "rgba(255,255,255,0.88)",
-                    cursor: "pointer",
-                    transition: "all 0.2s ease"
+                  onClick={() => {
+                    setAnswers((current) => ({ ...current, [currentQuestion.id]: option.id }))
+                    setError("")
                   }}
+                  className={cn(
+                    "w-full rounded-2xl border-2 p-5 text-left transition-all duration-200",
+                    isSelected
+                      ? "border-gold bg-gold/15 text-foreground"
+                      : "border-border bg-card hover:border-primary/50"
+                  )}
                 >
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#3a281d" }}>
-                    {option.title}
-                  </div>
-                  <div style={{ marginTop: 6, fontSize: 14, lineHeight: 1.6, color: "#6d5544" }}>
-                    {option.description}
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-base font-medium">{option.label}</span>
+                    {isSelected ? <CheckCircle className="h-5 w-5 text-gold" /> : null}
                   </div>
                 </button>
               )
             })}
           </div>
-        </section>
 
-        <section
-          style={{
-            marginTop: 28,
-            padding: 18,
-            borderRadius: 20,
-            background: "#f7efe6",
-            border: "1px solid #e4d4c5"
-          }}
-        >
-          <div style={{ fontSize: 13, color: "#9c6d48", letterSpacing: "0.08em" }}>
-            สรุปคำตอบ
-          </div>
-          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            {questions.map((question, index) => (
-              <div key={question.id} style={{ color: "#5e4a3b", fontSize: 14 }}>
-                {index + 1}. {answers[question.id]?.title || "ยังไม่ได้เลือก"}
-              </div>
-            ))}
-          </div>
-        </section>
+          {error ? (
+            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          ) : null}
 
-        {error ? (
-          <p style={{ marginTop: 18, color: "#b42318", fontSize: 14 }}>{error}</p>
-        ) : null}
-
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            justifyContent: "space-between",
-            marginTop: 24,
-            flexWrap: "wrap"
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setCurrentIndex(index => Math.max(0, index - 1))}
-            disabled={currentIndex === 0 || loading}
-            style={{
-              padding: "14px 18px",
-              borderRadius: 999,
-              border: "1px solid #d4bda9",
-              background: currentIndex === 0 || loading ? "#efe4d9" : "#fff",
-              color: "#6b5342",
-              cursor: currentIndex === 0 || loading ? "not-allowed" : "pointer",
-              minWidth: 120
-            }}
-          >
-            ย้อนกลับ
-          </button>
-
-          {!isLastQuestion ? (
-            <button
-              type="button"
+          <div className="mt-8 flex items-center justify-between gap-4">
+            <Button
+              variant="ghost"
+              onClick={() => setStep((current) => Math.max(current - 1, 0))}
+              disabled={step === 0 || loading}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              ย้อนกลับ
+            </Button>
+            <Button
               onClick={() => {
-                if (!currentAnswer) {
-                  setError("เลือกคำตอบก่อน ไปข้อถัดไป")
+                if (step < questions.length - 1) {
+                  setStep((current) => current + 1)
                   return
                 }
-                setCurrentIndex(index => Math.min(questions.length - 1, index + 1))
+                handleSubmit()
               }}
-              disabled={loading}
-              style={{
-                padding: "14px 22px",
-                borderRadius: 999,
-                border: "none",
-                background: "linear-gradient(90deg, #b77542 0%, #d79b57 100%)",
-                color: "#fffdf8",
-                cursor: loading ? "not-allowed" : "pointer",
-                minWidth: 140
-              }}
+              disabled={!answers[currentQuestion.id] || loading}
+              loading={loading}
             >
-              ข้อถัดไป
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!canSubmit || loading}
-              style={{
-                padding: "14px 22px",
-                borderRadius: 999,
-                border: "none",
-                background: !canSubmit || loading
-                  ? "#d9c6b6"
-                  : "linear-gradient(90deg, #8d5334 0%, #c47c44 100%)",
-                color: "#fffdf8",
-                cursor: !canSubmit || loading ? "not-allowed" : "pointer",
-                minWidth: 180
-              }}
-            >
-              {loading ? "กำลังเปิดคำทำนาย..." : "เริ่มดูดวง"}
-            </button>
-          )}
+              {step === questions.length - 1 ? "เปิดไพ่" : "ถัดไป"}
+              {step < questions.length - 1 ? <ChevronRight className="h-4 w-4" /> : null}
+            </Button>
+          </div>
         </div>
       </div>
     </main>

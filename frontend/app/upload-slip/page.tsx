@@ -1,14 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
 import Link from "next/link"
+import { Upload } from "lucide-react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
+import { Button } from "@/components/ui/button"
+import { StatusBadge } from "@/components/ui/status-badge"
 
 export default function UploadSlip() {
   const router = useRouter()
   const [orderId, setOrderId] = useState("")
-  const [file, setFile] = useState<any>(null)
+  const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
@@ -35,8 +38,8 @@ export default function UploadSlip() {
       try {
         const res = await fetch(apiUrl(`/api/orders/${pendingOrderId}`), {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         })
 
         const data = await res.json()
@@ -73,9 +76,9 @@ export default function UploadSlip() {
     const res = await fetch(apiUrl(`/api/orders/${orderId}/payment`), {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: formData
+      body: formData,
     })
 
     if (!res.ok) {
@@ -89,141 +92,82 @@ export default function UploadSlip() {
     router.push("/pay-success")
   }
 
-  if (loading) {
-    return (
-      <main style={pageStyle}>
-        <section style={cardStyle}>
-          <h1 style={{ marginTop: 0 }}>Upload Slip</h1>
-          <p style={copyStyle}>กำลังโหลดข้อมูลออเดอร์...</p>
-        </section>
-      </main>
-    )
-  }
-
   return (
-    <main style={pageStyle}>
-      <section style={cardStyle}>
-        <p style={eyebrowStyle}>UPLOAD SLIP</p>
-        <h1 style={{ margin: "8px 0 12px", fontSize: 34 }}>PromptPay Evidence</h1>
-        <p style={copyStyle}>อัปโหลดหลักฐานการชำระเงินเพื่อส่งให้แอดมินตรวจสอบ</p>
-
-        {error ? <p style={errorStyle}>{error}</p> : null}
-
-        {order ? (
-          <div style={summaryBoxStyle}>
-            <div style={rowStyle}>
-              <span>Order</span>
-              <strong>#{order.order_id}</strong>
-            </div>
-            <div style={rowStyle}>
-              <span>Total</span>
-              <strong>{order.total_price} THB</strong>
-            </div>
-            <div style={rowStyle}>
-              <span>Status</span>
-              <strong style={{ textTransform: "capitalize" }}>{order.latestOrderStatus}</strong>
-            </div>
-          </div>
-        ) : null}
-
-        <div style={{ marginTop: 18 }}>
-          <input type="file" accept="image/png,image/jpeg" onChange={(e:any)=>setFile(e.target.files[0])} />
-          <p style={{ ...copyStyle, marginTop: 8, fontSize: 14 }}>
-            รองรับไฟล์ JPG และ PNG ขนาดไม่เกิน 5MB
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-3xl">
+        <section className="rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+          <div className="text-xs tracking-[0.18em] text-gold">UPLOAD SLIP</div>
+          <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
+            อัปโหลดหลักฐานการชำระเงิน
+          </h1>
+          <p className="mt-3 text-muted-foreground">
+            ส่งสลิป PromptPay ให้แอดมินตรวจสอบเพื่ออนุมัติคำสั่งซื้อของคุณ
           </p>
-        </div>
 
-        <div style={actionRowStyle}>
-          <button type="button" onClick={upload} style={buttonStyle} disabled={submitting}>
-            {submitting ? "กำลังอัปโหลด..." : "Upload Slip"}
-          </button>
-          <Link href="/payment" style={linkStyle}>กลับไปหน้าชำระเงิน</Link>
-        </div>
-      </section>
+          {error ? (
+            <div className="mt-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="mt-6 rounded-2xl border border-border bg-background/40 p-8 text-center text-muted-foreground">
+              กำลังโหลดข้อมูลออเดอร์...
+            </div>
+          ) : order ? (
+            <>
+              <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <InfoBlock label="Order" value={`#${order.order_id}`} />
+                <InfoBlock label="Total" value={`${order.total_price} THB`} />
+                <div className="rounded-2xl border border-border bg-background/40 p-4">
+                  <div className="text-xs tracking-[0.16em] text-gold">Status</div>
+                  <div className="mt-2">
+                    <StatusBadge status={order.latestOrderStatus} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-[1.5rem] border border-dashed border-gold/40 bg-gold/5 p-6">
+                <label className="block cursor-pointer">
+                  <div className="flex flex-col items-center justify-center text-center">
+                    <Upload className="h-8 w-8 text-gold" />
+                    <div className="mt-3 text-lg font-semibold text-foreground">
+                      {file ? file.name : "เลือกไฟล์สลิป"}
+                    </div>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      รองรับไฟล์ JPG และ PNG ขนาดไม่เกิน 5MB
+                    </p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    className="hidden"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Button onClick={upload} loading={submitting} disabled={!file}>
+                  {submitting ? "กำลังอัปโหลด..." : "Upload Slip"}
+                </Button>
+                <Link href="/payment">
+                  <Button variant="ghost">กลับไปหน้าชำระเงิน</Button>
+                </Link>
+              </div>
+            </>
+          ) : null}
+        </section>
+      </div>
     </main>
   )
 }
 
-const pageStyle = {
-  minHeight: "100vh",
-  display: "grid",
-  placeItems: "center",
-  padding: 20,
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-
-const cardStyle = {
-  width: "100%",
-  maxWidth: 560,
-  background: "rgba(255,255,255,0.84)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 28,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.16em",
-  color: "#9b7458"
-} as const
-
-const copyStyle = {
-  margin: 0,
-  color: "#6e5848",
-  lineHeight: 1.7
-} as const
-
-const summaryBoxStyle = {
-  display: "grid",
-  gap: 12,
-  padding: 16,
-  borderRadius: 18,
-  background: "#fff8f2",
-  border: "1px solid #e3d0c0",
-  marginTop: 16
-} as const
-
-const rowStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12
-} as const
-
-const actionRowStyle = {
-  display: "flex",
-  gap: 12,
-  flexWrap: "wrap" as const,
-  marginTop: 18
-} as const
-
-const buttonStyle = {
-  border: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const linkStyle = {
-  display: "inline-block",
-  textDecoration: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "#fff8f2",
-  border: "1px solid #dbc5b4",
-  color: "#5f4738"
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginTop: 14
-} as const
+function InfoBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-border bg-background/40 p-4">
+      <div className="text-xs tracking-[0.16em] text-gold">{label}</div>
+      <div className="mt-2 text-lg font-semibold text-foreground">{value}</div>
+    </div>
+  )
+}

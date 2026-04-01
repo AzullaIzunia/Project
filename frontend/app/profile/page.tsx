@@ -1,59 +1,99 @@
 "use client"
 
 import Link from "next/link"
+import { BookOpen, LogOut, MapPin, Package, User } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
+import { removeToken } from "@/lib/auth"
+import { Button } from "@/components/ui/button"
+import { Input, Textarea } from "@/components/ui/input"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { cn } from "@/lib/utils"
+
+type UserOrder = {
+  order_id: number
+  total_price: number
+  latestOrderStatus: string
+  createOrder: string
+}
+
+const tabs = [
+  { id: "profile", label: "ข้อมูลส่วนตัว", icon: User },
+  { id: "orders", label: "คำสั่งซื้อ", icon: Package },
+  { id: "history", label: "ประวัติดวง", icon: BookOpen },
+]
 
 export default function ProfilePage() {
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState("profile")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [recentOrders, setRecentOrders] = useState<UserOrder[]>([])
   const [form, setForm] = useState({
     name: "",
     address: "",
     telephone: "",
-    password: ""
+    password: "",
   })
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchProfile = async () => {
       const token = localStorage.getItem("token")
 
       if (!token) {
-        setLoading(false)
-        setError("กรุณาเข้าสู่ระบบก่อน")
+        router.push("/login")
         return
       }
 
-      const res = await fetch(apiUrl("/api/user/me"), {
-        headers: {
-          Authorization: `Bearer ${token}`
+      try {
+        const [userRes, ordersRes] = await Promise.all([
+          fetch(apiUrl("/api/user/me"), {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(apiUrl("/api/orders/my"), {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ])
+
+        const userData = await userRes.json()
+        const ordersData = await ordersRes.json()
+
+        if (!userRes.ok) {
+          throw new Error(userData.error || "โหลดข้อมูลโปรไฟล์ไม่สำเร็จ")
         }
-      })
 
-      const data = await res.json()
+        if (!ordersRes.ok) {
+          throw new Error(ordersData.error || "โหลดออเดอร์ไม่สำเร็จ")
+        }
 
-      if (!res.ok) {
-        setError(data.error || "โหลดข้อมูลโปรไฟล์ไม่สำเร็จ")
+        setForm({
+          name: userData.name || "",
+          address: userData.address || "",
+          telephone: userData.telephone || "",
+          password: "",
+        })
+        setRecentOrders((ordersData || []).slice(0, 3))
+      } catch (err: any) {
+        setError(err.message || "โหลดข้อมูลไม่สำเร็จ")
+      } finally {
         setLoading(false)
-        return
       }
-
-      setForm({
-        name: data.name || "",
-        address: data.address || "",
-        telephone: data.telephone || "",
-        password: ""
-      })
-      setLoading(false)
     }
 
-    fetchUser()
-  }, [])
+    fetchProfile()
+  }, [router])
 
   const handleSave = async () => {
     const token = localStorage.getItem("token")
+
+    if (!token) {
+      router.push("/login")
+      return
+    }
+
     setError("")
     setNotice("")
 
@@ -73,9 +113,9 @@ export default function ProfilePage() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(form)
+      body: JSON.stringify(form),
     })
 
     const data = await res.json()
@@ -86,158 +126,182 @@ export default function ProfilePage() {
       return
     }
 
-    setForm(current => ({
+    setForm((current) => ({
       ...current,
-      password: ""
+      password: "",
     }))
     setNotice("อัปเดตข้อมูลเรียบร้อยแล้ว")
     setSaving(false)
   }
 
+  const handleLogout = () => {
+    removeToken()
+    router.push("/login")
+  }
+
   if (loading) {
     return (
-      <main style={pageStyle}>
-        <section style={cardStyle}>
-          <h1 style={{ marginTop: 0 }}>Profile</h1>
-          <p>กำลังโหลดข้อมูลโปรไฟล์...</p>
-        </section>
+      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+        <div className="mx-auto max-w-5xl rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+          กำลังโหลดข้อมูลโปรไฟล์...
+        </div>
       </main>
     )
   }
 
   return (
-    <main style={pageStyle}>
-      <section style={cardStyle}>
-        <p style={eyebrowStyle}>PROFILE</p>
-        <h1 style={{ margin: "8px 0 18px", fontSize: 34 }}>Profile</h1>
-
-        <div style={fieldWrapStyle}>
-          <input
-            value={form.name}
-            onChange={e => setForm({ ...form, name: e.target.value })}
-            style={inputStyle}
-            placeholder="Name"
-          />
-
-          <input
-            value={form.address}
-            onChange={e => setForm({ ...form, address: e.target.value })}
-            style={inputStyle}
-            placeholder="Address"
-          />
-
-          <input
-            value={form.telephone}
-            onChange={e => setForm({ ...form, telephone: e.target.value })}
-            style={inputStyle}
-            placeholder="Telephone"
-          />
-
-          <input
-            type="password"
-            placeholder="New password"
-            onChange={e => setForm({ ...form, password: e.target.value })}
-            style={inputStyle}
-          />
+    <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-gold/30 bg-gold/10 text-2xl font-semibold text-gold">
+              {form.name ? form.name.charAt(0).toUpperCase() : "U"}
+            </div>
+            <div>
+              <div className="text-xs tracking-[0.18em] text-gold">PROFILE</div>
+              <h1 className="mt-2 text-3xl font-semibold text-foreground">{form.name || "Your Profile"}</h1>
+            </div>
+          </div>
+          <Button variant="ghost" onClick={handleLogout}>
+            <LogOut className="h-4 w-4" />
+            Logout
+          </Button>
         </div>
 
-        {error ? <p style={errorStyle}>{error}</p> : null}
-        {notice ? <p style={noticeStyle}>{notice}</p> : null}
-
-        <div style={actionRowStyle}>
-          <button onClick={handleSave} style={buttonStyle} disabled={saving}>
-            {saving ? "กำลังบันทึก..." : "Save"}
-          </button>
-          <Link href="/orders" style={linkStyle}>My Orders</Link>
-          <Link href="/fate-history" style={linkStyle}>Fate History</Link>
+        <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                "flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-sm font-medium transition-colors",
+                activeTab === tab.id
+                  ? "bg-foreground text-background"
+                  : "bg-card text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <tab.icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
-      </section>
+
+        {error ? (
+          <div className="mb-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        ) : null}
+
+        {notice ? (
+          <div className="mb-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+            {notice}
+          </div>
+        ) : null}
+
+        {activeTab === "profile" ? (
+          <section className="rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
+            <div className="mb-6">
+              <div className="text-xs tracking-[0.18em] text-gold">ACCOUNT DETAILS</div>
+              <h2 className="mt-2 text-2xl font-semibold text-foreground">ข้อมูลส่วนตัว</h2>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <Input
+                id="name"
+                label="ชื่อ"
+                value={form.name}
+                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+              />
+              <Input
+                id="telephone"
+                label="เบอร์โทรศัพท์"
+                value={form.telephone}
+                onChange={(event) => setForm((current) => ({ ...current, telephone: event.target.value }))}
+              />
+            </div>
+
+            <div className="mt-4">
+              <Textarea
+                id="address"
+                label="ที่อยู่"
+                rows={4}
+                value={form.address}
+                onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+              />
+            </div>
+
+            <div className="mt-4">
+              <Input
+                id="password"
+                type="password"
+                label="รหัสผ่านใหม่"
+                placeholder="เว้นว่างถ้ายังไม่ต้องการเปลี่ยน"
+                value={form.password}
+                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+              />
+            </div>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Button onClick={handleSave} loading={saving}>
+                {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+              </Button>
+              <Link href="/orders">
+                <Button variant="gold">ไปที่คำสั่งซื้อ</Button>
+              </Link>
+            </div>
+          </section>
+        ) : null}
+
+        {activeTab === "orders" ? (
+          <section className="space-y-4">
+            {recentOrders.length === 0 ? (
+              <div className="rounded-[2rem] border border-border bg-card/70 p-8 text-center text-muted-foreground">
+                ยังไม่มีรายการออเดอร์
+              </div>
+            ) : (
+              recentOrders.map((order) => (
+                <div
+                  key={order.order_id}
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-[1.5rem] border border-border bg-card/70 p-5"
+                >
+                  <div>
+                    <div className="text-lg font-semibold text-foreground">Order #{order.order_id}</div>
+                    <div className="mt-1 text-sm text-muted-foreground">
+                      {new Date(order.createOrder).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <StatusBadge status={order.latestOrderStatus} />
+                    <div className="font-semibold text-foreground">{order.total_price} THB</div>
+                  </div>
+                </div>
+              ))
+            )}
+
+            <Link href="/orders">
+              <Button variant="ghost" className="w-full justify-center">
+                ดูคำสั่งซื้อทั้งหมด
+              </Button>
+            </Link>
+          </section>
+        ) : null}
+
+        {activeTab === "history" ? (
+          <section className="rounded-[2rem] border border-border bg-card/70 p-8 text-center">
+            <BookOpen className="mx-auto h-10 w-10 text-gold" />
+            <h2 className="mt-5 text-2xl font-semibold text-foreground">ประวัติการดูดวง</h2>
+            <p className="mt-3 text-muted-foreground">
+              ดูผลคำทำนายย้อนหลังและกลับไปเลือกสินค้าที่เหมาะกับผลแต่ละครั้งได้
+            </p>
+            <div className="mt-6">
+              <Link href="/fate-history">
+                <Button>เปิดประวัติดวง</Button>
+              </Link>
+            </div>
+          </section>
+        ) : null}
+      </div>
     </main>
   )
 }
-
-const pageStyle = {
-  minHeight: "100vh",
-  display: "grid",
-  placeItems: "center",
-  padding: 20,
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
-  fontFamily: "Georgia, serif",
-  color: "#2a1f18"
-} as const
-
-const cardStyle = {
-  width: "100%",
-  maxWidth: 560,
-  background: "rgba(255,255,255,0.84)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
-  borderRadius: 24,
-  padding: 28,
-  boxShadow: "0 18px 48px rgba(74, 49, 31, 0.08)"
-} as const
-
-const eyebrowStyle = {
-  margin: 0,
-  fontSize: 12,
-  letterSpacing: "0.16em",
-  color: "#9b7458"
-} as const
-
-const fieldWrapStyle = {
-  display: "grid",
-  gap: 12
-} as const
-
-const inputStyle = {
-  width: "100%",
-  boxSizing: "border-box" as const,
-  padding: "14px 16px",
-  borderRadius: 16,
-  border: "1px solid #d9c6b6",
-  background: "#fffdfa",
-  color: "#2f2118",
-  fontSize: 14
-} as const
-
-const actionRowStyle = {
-  display: "flex",
-  gap: 12,
-  flexWrap: "wrap" as const,
-  marginTop: 18
-} as const
-
-const buttonStyle = {
-  border: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
-  cursor: "pointer",
-  fontSize: 14
-} as const
-
-const linkStyle = {
-  display: "inline-block",
-  textDecoration: "none",
-  borderRadius: 999,
-  padding: "12px 18px",
-  background: "#fff8f2",
-  border: "1px solid #dbc5b4",
-  color: "#5f4738"
-} as const
-
-const errorStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#fdeeee",
-  color: "#b42318",
-  marginTop: 16
-} as const
-
-const noticeStyle = {
-  padding: "12px 16px",
-  borderRadius: 14,
-  background: "#edf7ef",
-  color: "#146c2e",
-  marginTop: 16
-} as const
