@@ -92,32 +92,22 @@ router.get("/", async (req, res) => {
   }
 })
 
-// add product (admin only)
-router.post("/", authenticate, requireAdmin, async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
-    const {
-      product_name,
-      category,
-      price,
-      stock_quantity,
-      description,
-      main_stat
-    } = req.body
+    const id = Number(req.params.id)
 
-    const product = await prisma.product.create({
-      data: {
-        product_name,
-        category,
-        price: Number(price),
-        stock_quantity: Number(stock_quantity),
-        description,
-        main_stat
-      }
+    const product = await prisma.product.findUnique({
+      where: { product_id: id }
     })
 
-    res.status(201).json(product)
+    if (!product || !product.isActive) {
+      return res.status(404).json({ error: "Product not found" })
+    }
+
+    res.json(product)
   } catch (error) {
-    res.status(400).json({ error: "Cannot create product" })
+    console.error("PRODUCT DETAIL ERROR:", error)
+    res.status(500).json({ error: "Cannot fetch product" })
   }
 })
 
@@ -203,5 +193,3 @@ router.post("/", authenticate, requireAdmin, async (req, res) => {
 })
 
 export default router
-
-

@@ -20,7 +20,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "lucide-react": ["./lucide-react"]
     }
   },
   "include": [

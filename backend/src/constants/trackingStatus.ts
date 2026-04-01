@@ -2,7 +2,8 @@ export const allowedTrackingStatus = [
   "order_received",
   "preparing",
   "packed",
-  "shipping"
+  "shipping",
+  "delivered"
 ] as const
 
 export type TrackingStatusType =

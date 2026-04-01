@@ -19,7 +19,7 @@ export default function ResultPage() {
       <p>{data.result}</p>
       <p>Stone: {data.stone}</p>
 
-      <Link href="/recommend/1">See Products</Link>
+      <Link href={`/recommend/${data.result_id}`}>See Products</Link>
     </div>
   )
 }

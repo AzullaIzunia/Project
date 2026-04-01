@@ -51,6 +51,7 @@ model Product {
   product_name   String
   category       String
   price          Float
+  image_url      String?
   description    String?
   stock_quantity Int
   createdAt      DateTime    @default(now())

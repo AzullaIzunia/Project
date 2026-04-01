@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { apiUrl } from "@/lib/api"
 
 export default function ChoosePage() {
   const router = useRouter()
@@ -16,7 +17,7 @@ export default function ChoosePage() {
   const choose = async (stat: string) => {
     const token = localStorage.getItem("token")
 
-    const res = await fetch("http://localhost:5001/api/fate/choose", {
+    const res = await fetch(apiUrl("/api/fate/choose"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
