@@ -70,6 +70,14 @@ router.post("/:id/pay", authenticate, async (req: any, res) => {
       })
     }
 
+    const success = Math.random() > 0.2
+
+    if (!success) {
+      return res.status(400).json({
+        error: "Card declined (fake)"
+      })
+    }
+
     // 💳 FAKE SUCCESS
     const updated = await prisma.order.update({
       where: { order_id: orderId },
@@ -89,14 +97,6 @@ router.post("/:id/pay", authenticate, async (req: any, res) => {
     console.error("PAY ERROR:", error)
     res.status(500).json({ error: "Payment failed" })
   }
-
-  const success = Math.random() > 0.2
-
-if (!success) {
-  return res.status(400).json({
-    error: "Card declined (fake)"
-  })
-}
 })
 
 /* =======================================================

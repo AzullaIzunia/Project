@@ -6,6 +6,27 @@ import { Prisma } from "@prisma/client"
 
 const router = Router()
 
+router.get("/history", authenticate, async (req: any, res) => {
+  try {
+    const userId = req.user.user_id
+
+    const results = await prisma.fateResult.findMany({
+      where: { user_id: userId },
+      include: {
+        fate: true
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    })
+
+    res.json(results)
+  } catch (error) {
+    console.error("FATE HISTORY ERROR:", error)
+    res.status(500).json({ error: "Cannot fetch fate history" })
+  }
+})
+
 router.post("/draw", authenticate, async (req: any, res) => {
   try {
     const userId = req.user.user_id
@@ -151,7 +172,7 @@ router.post("/choose", authenticate, async (req: any, res) => {
     const finalResult =
       descriptions[Math.floor(Math.random() * descriptions.length)]
 
-    await prisma.fateResult.create({
+    const fateResult = await prisma.fateResult.create({
       data: {
         user_id: userId,
         witch_id: session.witch_id,
@@ -169,6 +190,7 @@ router.post("/choose", authenticate, async (req: any, res) => {
 
     res.json({
       message: "Choose success",
+      result_id: fateResult.result_id,
       stone: fate.stone,
       result: finalResult
     })
