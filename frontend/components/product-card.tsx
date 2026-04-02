@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ShoppingBag } from "lucide-react"
 import { addToCart } from "@/lib/cart"
+import { formatPrice } from "@/lib/display"
 import { getProductImage } from "@/lib/product-media"
 import { Button } from "@/components/ui/button"
 
@@ -32,7 +33,7 @@ export default function ProductCard({ product }: { product: Product }) {
             {product.product_name}
           </h2>
         </Link>
-        <div className="mt-2 text-sm text-muted-foreground">{product.price} THB</div>
+        <div className="mt-2 text-sm text-muted-foreground">{formatPrice(product.price)}</div>
         <div className="mt-4 flex gap-2">
           <Link href={`/products/${product.product_id}`} className="flex-1">
             <Button variant="ghost" className="w-full justify-center">

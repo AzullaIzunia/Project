@@ -6,7 +6,9 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import ProtectedGate from "@/components/protected-gate"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { formatPrice, paymentMethodLabel, statusLabel } from "@/lib/display"
 
 type Order = {
   order_id: number
@@ -32,6 +34,10 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [isAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false
+    return Boolean(localStorage.getItem("token"))
+  })
 
   const fetchOrders = async (authToken: string) => {
     setLoading(true)
@@ -62,7 +68,7 @@ export default function OrdersPage() {
     const storedToken = localStorage.getItem("token")
 
     if (!storedToken) {
-      router.push("/login")
+      setLoading(false)
       return
     }
 
@@ -97,12 +103,21 @@ export default function OrdersPage() {
     router.push("/payment")
   }
 
+  if (!isAuthenticated) {
+    return (
+      <ProtectedGate
+        redirectTo="/orders"
+        description="กรุณาเข้าสู่ระบบก่อน เพื่อดูคำสั่งซื้อ สถานะการชำระเงิน และความคืบหน้าการจัดส่งของคุณ"
+      />
+    )
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-xs tracking-[0.18em] text-gold">MY ORDERS</div>
+            <div className="text-xs tracking-[0.18em] text-gold">คำสั่งซื้อของฉัน</div>
             <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
               คำสั่งซื้อของฉัน
             </h1>
@@ -116,15 +131,39 @@ export default function OrdersPage() {
         </div>
 
         {error ? (
-          <div className="mb-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+          <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="mb-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+          <div className="mb-5 rounded-xl border border-emerald-500/30 bg-emerald-500/12 px-4 py-3 text-sm text-emerald-200">
             {notice}
           </div>
+        ) : null}
+
+        {!loading && orders.length > 0 ? (
+          <section className="mb-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-[1.5rem] border border-border bg-card/70 p-5">
+              <div className="text-xs tracking-[0.16em] text-gold">จำนวนออเดอร์ทั้งหมด</div>
+              <div className="mt-3 text-3xl font-semibold text-foreground">{orders.length}</div>
+              <p className="mt-2 text-sm text-muted-foreground">รายการทั้งหมดในบัญชีนี้</p>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-card/70 p-5">
+              <div className="text-xs tracking-[0.16em] text-gold">รายการที่ต้องดำเนินการ</div>
+              <div className="mt-3 text-3xl font-semibold text-foreground">
+                {orders.filter((order) => order.latestOrderStatus === "paid").length}
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">ออเดอร์ที่ยังชำระ/อัปโหลดสลิปต่อได้</p>
+            </div>
+            <div className="rounded-[1.5rem] border border-border bg-card/70 p-5">
+              <div className="text-xs tracking-[0.16em] text-gold">ยอดใช้จ่ายรวม</div>
+              <div className="mt-3 text-3xl font-semibold text-foreground">
+                {formatPrice(orders.reduce((sum, order) => sum + order.total_price, 0))}
+              </div>
+              <p className="mt-2 text-sm text-muted-foreground">มูลค่าออเดอร์รวมทั้งหมดของคุณ</p>
+            </div>
+          </section>
         ) : null}
 
         {loading ? (
@@ -155,7 +194,7 @@ export default function OrdersPage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border px-5 py-5">
                     <div>
-                      <div className="text-lg font-semibold text-foreground">Order #{order.order_id}</div>
+                      <div className="text-lg font-semibold text-foreground">ออเดอร์ #{order.order_id}</div>
                       <div className="mt-1 text-sm text-muted-foreground">
                         {new Date(order.createOrder).toLocaleString()}
                       </div>
@@ -163,15 +202,32 @@ export default function OrdersPage() {
                     <div className="flex flex-wrap items-center gap-3">
                       <StatusBadge status={order.latestOrderStatus} />
                       <div className="text-sm text-muted-foreground">
-                        {order.payment_method.replace("_", " ")}
+                        {paymentMethodLabel(order.payment_method)}
                       </div>
                       <div className="text-lg font-semibold text-foreground">
-                        {order.total_price} THB
+                        {formatPrice(order.total_price)}
                       </div>
                     </div>
                   </div>
 
                   <div className="px-5 py-5">
+                    <div className="mb-4 grid gap-3 md:grid-cols-3">
+                      <div className="rounded-2xl border border-border bg-background/40 px-4 py-3">
+                        <div className="text-xs tracking-[0.16em] text-gold">การชำระเงิน</div>
+                        <div className="mt-2 text-sm text-muted-foreground">{paymentMethodLabel(order.payment_method)}</div>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-background/40 px-4 py-3">
+                        <div className="text-xs tracking-[0.16em] text-gold">จำนวนสินค้า</div>
+                        <div className="mt-2 text-sm text-muted-foreground">
+                          {order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} ชิ้น
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-background/40 px-4 py-3">
+                        <div className="text-xs tracking-[0.16em] text-gold">สถานะ</div>
+                        <div className="mt-2 text-sm text-muted-foreground">{statusLabel(order.latestOrderStatus)}</div>
+                      </div>
+                    </div>
+
                     <div className="grid gap-3">
                       {order.orderItems.map((item) => (
                         <div
@@ -186,7 +242,7 @@ export default function OrdersPage() {
                           </div>
                           <div className="text-right text-sm text-muted-foreground">
                             <div>x{item.quantity}</div>
-                            <div>{item.price} THB</div>
+                            <div>{formatPrice(item.price)}</div>
                           </div>
                         </div>
                       ))}

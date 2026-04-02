@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { addToCart } from "@/lib/cart"
+import { formatPrice } from "@/lib/display"
 import { getProductImage } from "@/lib/product-media"
 import { Button } from "@/components/ui/button"
 
@@ -118,7 +119,7 @@ export default function RecommendPage() {
             <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
               <div>
                 <div className="text-xs tracking-[0.18em] text-gold font-body">
-                  RECOMMENDED FOR YOUR READING
+                  สินค้าที่คัดจากผลการเปิดดวง
                 </div>
                 <h1 className="mt-3 text-4xl font-serif font-bold text-foreground sm:text-5xl">
                   สินค้าที่เหมาะกับคำทำนายของคุณ
@@ -142,15 +143,15 @@ export default function RecommendPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-border bg-secondary/25 p-4">
-                  <div className="text-xs tracking-[0.16em] text-gold">FAST ACTION</div>
-                  <div className="mt-3 text-lg font-semibold text-foreground">Buy Now</div>
+                  <div className="text-xs tracking-[0.16em] text-gold">ซื้อได้ทันที</div>
+                  <div className="mt-3 text-lg font-semibold text-foreground">สั่งซื้อเลย</div>
                   <p className="mt-2 text-sm leading-7 text-muted-foreground">
                     ซื้อด้วยบัตรหรือ PromptPay แล้วไปต่อหน้า payment ได้ทันที
                   </p>
                 </div>
                 <div className="rounded-2xl border border-border bg-secondary/25 p-4">
-                  <div className="text-xs tracking-[0.16em] text-gold">SAVE FOR LATER</div>
-                  <div className="mt-3 text-lg font-semibold text-foreground">Add to Cart</div>
+                  <div className="text-xs tracking-[0.16em] text-gold">เก็บไว้ก่อน</div>
+                  <div className="mt-3 text-lg font-semibold text-foreground">ใส่ตะกร้า</div>
                   <p className="mt-2 text-sm leading-7 text-muted-foreground">
                     เพิ่มสินค้าเก็บไว้ในตะกร้าแล้วค่อย checkout ทีเดียวก็ได้
                   </p>
@@ -160,13 +161,13 @@ export default function RecommendPage() {
           </div>
 
           {error ? (
-            <div className="mt-6 rounded-xl border border-red-800/50 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+            <div className="mt-6 rounded-xl border border-red-500/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
               {error}
             </div>
           ) : null}
 
           {notice ? (
-            <div className="mt-6 rounded-xl border border-green-800/50 bg-green-900/30 px-4 py-3 text-sm text-green-300">
+            <div className="mt-6 rounded-xl border border-emerald-500/30 bg-emerald-500/12 px-4 py-3 text-sm text-emerald-200">
               {notice}
             </div>
           ) : null}
@@ -198,7 +199,7 @@ export default function RecommendPage() {
                       {product.product_name}
                     </h2>
                     <p className="mt-2 text-sm text-muted-foreground font-body">
-                      {product.price} THB
+                      {formatPrice(product.price)}
                     </p>
                   </div>
 

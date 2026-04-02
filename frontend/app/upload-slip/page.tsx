@@ -6,7 +6,9 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import ProtectedGate from "@/components/protected-gate"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { formatPrice } from "@/lib/display"
 
 export default function UploadSlip() {
   const router = useRouter()
@@ -16,13 +18,17 @@ export default function UploadSlip() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [order, setOrder] = useState<any>(null)
+  const [isAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false
+    return Boolean(localStorage.getItem("token"))
+  })
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const pendingOrderId = localStorage.getItem("pending_order_id")
 
     if (!token) {
-      router.push("/login")
+      setLoading(false)
       return
     }
 
@@ -92,11 +98,20 @@ export default function UploadSlip() {
     router.push("/pay-success")
   }
 
+  if (!isAuthenticated) {
+    return (
+      <ProtectedGate
+        redirectTo="/upload-slip"
+        description="กรุณาเข้าสู่ระบบก่อน เพื่ออัปโหลดสลิปและยืนยันการชำระเงินผ่านพร้อมเพย์"
+      />
+    )
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
       <div className="mx-auto max-w-3xl">
         <section className="rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
-          <div className="text-xs tracking-[0.18em] text-gold">UPLOAD SLIP</div>
+          <div className="text-xs tracking-[0.18em] text-gold">อัปโหลดสลิป</div>
           <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
             อัปโหลดหลักฐานการชำระเงิน
           </h1>
@@ -105,7 +120,7 @@ export default function UploadSlip() {
           </p>
 
           {error ? (
-            <div className="mt-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+            <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
               {error}
             </div>
           ) : null}
@@ -117,14 +132,22 @@ export default function UploadSlip() {
           ) : order ? (
             <>
               <div className="mt-6 grid gap-4 md:grid-cols-3">
-                <InfoBlock label="Order" value={`#${order.order_id}`} />
-                <InfoBlock label="Total" value={`${order.total_price} THB`} />
+                <InfoBlock label="ออเดอร์" value={`#${order.order_id}`} />
+                <InfoBlock label="ยอดรวม" value={formatPrice(order.total_price)} />
                 <div className="rounded-2xl border border-border bg-background/40 p-4">
-                  <div className="text-xs tracking-[0.16em] text-gold">Status</div>
+                  <div className="text-xs tracking-[0.16em] text-gold">สถานะ</div>
                   <div className="mt-2">
                     <StatusBadge status={order.latestOrderStatus} />
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-[1.5rem] border border-border bg-background/40 p-5">
+                <div className="text-xs tracking-[0.16em] text-gold">คำแนะนำการอัปโหลด</div>
+                <p className="mt-3 text-sm leading-7 text-muted-foreground">
+                  หลังอัปโหลดสลิปแล้ว ออเดอร์จะถูกส่งให้แอดมินตรวจสอบอีกครั้ง
+                  จากนั้นสถานะจะถูกอัปเดตในหน้าคำสั่งซื้อของคุณ
+                </p>
               </div>
 
               <div className="mt-6 rounded-[1.5rem] border border-dashed border-gold/40 bg-gold/5 p-6">
@@ -149,14 +172,18 @@ export default function UploadSlip() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button onClick={upload} loading={submitting} disabled={!file}>
-                  {submitting ? "กำลังอัปโหลด..." : "Upload Slip"}
+                  {submitting ? "กำลังอัปโหลด..." : "อัปโหลดสลิป"}
                 </Button>
                 <Link href="/payment">
                   <Button variant="ghost">กลับไปหน้าชำระเงิน</Button>
                 </Link>
               </div>
             </>
-          ) : null}
+          ) : (
+            <div className="mt-6 rounded-2xl border border-border bg-background/40 p-8 text-center">
+              <p className="text-muted-foreground">ไม่พบข้อมูลออเดอร์สำหรับการอัปโหลดสลิป</p>
+            </div>
+          )}
         </section>
       </div>
     </main>

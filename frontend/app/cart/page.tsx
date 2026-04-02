@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { CartItem, clearCart, getCart, removeFromCart, updateCartQuantity } from "@/lib/cart"
+import { formatPrice, paymentMethodLabel } from "@/lib/display"
 import { getProductImage } from "@/lib/product-media"
 import { Button } from "@/components/ui/button"
 
@@ -85,19 +86,19 @@ export default function CartPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs tracking-[0.18em] text-gold">CART</p>
-            <h1 className="mt-2 text-4xl font-semibold text-foreground">Your Cart</h1>
+            <p className="text-xs tracking-[0.18em] text-gold">ตะกร้าสินค้า</p>
+            <h1 className="mt-2 text-4xl font-semibold text-foreground">ตะกร้าของคุณ</h1>
             <p className="mt-2 max-w-2xl text-muted-foreground">
               จัดจำนวนสินค้า เลือกวิธีชำระเงิน แล้วสร้างออเดอร์เพื่อไปต่อที่ payment
             </p>
           </div>
           <Link href="/shop">
-            <Button variant="ghost">Continue Shopping</Button>
+            <Button variant="ghost">เลือกซื้อสินค้าต่อ</Button>
           </Link>
         </div>
 
         {error ? (
-          <p className="mb-4 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+          <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
             {error}
           </p>
         ) : null}
@@ -123,7 +124,7 @@ export default function CartPage() {
                     <div>
                       <div className="text-xl font-semibold text-foreground">{item.product_name}</div>
                       <div className="mt-1 text-sm text-muted-foreground">
-                        {item.category} • {item.price} THB
+                        {item.category} • {formatPrice(item.price)}
                       </div>
                     </div>
                   </div>
@@ -136,7 +137,7 @@ export default function CartPage() {
                       +
                     </Button>
                     <Button type="button" variant="danger" onClick={() => { removeFromCart(item.product_id); syncCart() }}>
-                      Remove
+                      ลบออก
                     </Button>
                   </div>
                 </article>
@@ -144,18 +145,18 @@ export default function CartPage() {
             </section>
 
             <aside className="rounded-[1.75rem] border border-border bg-card/70 p-6">
-              <h2 className="mt-0 text-2xl font-semibold text-foreground">Checkout</h2>
+              <h2 className="mt-0 text-2xl font-semibold text-foreground">สรุปการสั่งซื้อ</h2>
               <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
-                <span>Items</span>
+                <span>จำนวนรายการ</span>
                 <strong className="text-foreground">{items.length}</strong>
               </div>
               <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
-                <span>Total</span>
-                <strong className="text-foreground">{total} THB</strong>
+                <span>ยอดรวม</span>
+                <strong className="text-foreground">{formatPrice(total)}</strong>
               </div>
 
               <div className="mt-6">
-                <div className="text-xs tracking-[0.16em] text-gold">PAYMENT METHOD</div>
+                <div className="text-xs tracking-[0.16em] text-gold">วิธีชำระเงิน</div>
                 <div className="mt-3 grid gap-3">
                   <button
                     type="button"
@@ -164,7 +165,7 @@ export default function CartPage() {
                       ? "rounded-2xl border border-gold/40 bg-gold/15 px-4 py-3 text-left text-foreground"
                       : "rounded-2xl border border-border bg-background/40 px-4 py-3 text-left text-muted-foreground"}
                   >
-                    PromptPay
+                    {paymentMethodLabel("promptpay")}
                   </button>
                   <button
                     type="button"
@@ -173,14 +174,14 @@ export default function CartPage() {
                       ? "rounded-2xl border border-gold/40 bg-gold/15 px-4 py-3 text-left text-foreground"
                       : "rounded-2xl border border-border bg-background/40 px-4 py-3 text-left text-muted-foreground"}
                   >
-                    Credit Card
+                    {paymentMethodLabel("credit_card")}
                   </button>
                 </div>
               </div>
 
               <div className="mt-6">
                 <Button type="button" onClick={checkout} className="w-full justify-center" loading={submitting}>
-                  {submitting ? "กำลังสร้างออเดอร์..." : "Checkout"}
+                  {submitting ? "กำลังสร้างออเดอร์..." : "ยืนยันคำสั่งซื้อ"}
                 </Button>
               </div>
             </aside>

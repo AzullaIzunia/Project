@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils"
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  pending: { label: "รอชำระ", color: "bg-amber-50 text-amber-700 border-amber-200" },
-  paid: { label: "ชำระแล้ว", color: "bg-sky-50 text-sky-700 border-sky-200" },
-  preparing: { label: "กำลังเตรียม", color: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-  shipping: { label: "กำลังส่ง", color: "bg-violet-50 text-violet-700 border-violet-200" },
-  completed: { label: "สำเร็จ", color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  cancelled: { label: "ยกเลิก", color: "bg-rose-50 text-rose-700 border-rose-200" },
+  pending: { label: "รอชำระ", color: "bg-amber-500/12 text-amber-200 border-amber-500/30" },
+  paid: { label: "ชำระแล้ว", color: "bg-sky-500/12 text-sky-200 border-sky-500/30" },
+  preparing: { label: "กำลังเตรียม", color: "bg-indigo-500/12 text-indigo-200 border-indigo-500/30" },
+  shipping: { label: "กำลังส่ง", color: "bg-violet-500/12 text-violet-200 border-violet-500/30" },
+  completed: { label: "สำเร็จ", color: "bg-emerald-500/12 text-emerald-200 border-emerald-500/30" },
+  cancelled: { label: "ยกเลิก", color: "bg-rose-500/12 text-rose-200 border-rose-500/30" },
 }
 
 export function StatusBadge({

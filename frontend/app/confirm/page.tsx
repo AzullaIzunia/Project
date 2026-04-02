@@ -18,14 +18,14 @@ export default function ConfirmPage() {
   return (
     <main style={pageStyle}>
       <section style={cardStyle}>
-        <p style={eyebrowStyle}>CONFIRM ORDER</p>
-        <h1 style={{ margin: "8px 0 12px", fontSize: 36 }}>Final Check Before Payment</h1>
+        <p style={eyebrowStyle}>ยืนยันก่อนชำระเงิน</p>
+        <h1 style={{ margin: "8px 0 12px", fontSize: 36 }}>ตรวจรายละเอียดก่อนไปหน้าจ่ายเงิน</h1>
         <p style={copyStyle}>
           ระบุที่อยู่และหมายเหตุเพิ่มเติมก่อนส่งต่อไปหน้าชำระเงิน เพื่อให้ flow ตอนเดโม่ดูครบและเป็นขั้นตอนมากขึ้น
         </p>
 
         <div style={panelStyle}>
-          <div style={miniLabelStyle}>Shipping address</div>
+          <div style={miniLabelStyle}>ที่อยู่สำหรับจัดส่ง</div>
           <textarea
             placeholder="กรอกที่อยู่สำหรับจัดส่ง"
             value={address}
@@ -34,7 +34,7 @@ export default function ConfirmPage() {
             rows={5}
           />
 
-          <div style={{ ...miniLabelStyle, marginTop: 14 }}>Order note</div>
+          <div style={{ ...miniLabelStyle, marginTop: 14 }}>หมายเหตุคำสั่งซื้อ</div>
           <textarea
             placeholder="หมายเหตุเพิ่มเติม เช่น ช่วงเวลาที่สะดวกรับของ"
             value={note}
@@ -46,10 +46,10 @@ export default function ConfirmPage() {
 
         <div style={actionRowStyle}>
           <button type="button" onClick={handleConfirm} style={primaryButtonStyle}>
-            Continue to Payment
+            ไปหน้าชำระเงิน
           </button>
           <Link href="/cart" style={secondaryLinkStyle}>
-            Back to Cart
+            กลับไปตะกร้า
           </Link>
         </div>
       </section>
@@ -62,31 +62,31 @@ const pageStyle = {
   display: "grid",
   placeItems: "center",
   padding: 20,
-  background: "linear-gradient(180deg, #f7efe6 0%, #efdfd2 100%)",
+  background: "radial-gradient(circle at top, rgba(139,92,246,0.18), transparent 28%), linear-gradient(180deg, #0a0a0f 0%, #12111a 100%)",
   fontFamily: "Georgia, serif",
-  color: "#2a1f18"
+  color: "#f0f0f5"
 } as const
 
 const cardStyle = {
   width: "100%",
   maxWidth: 720,
-  background: "rgba(255,255,255,0.86)",
-  border: "1px solid rgba(111, 78, 55, 0.12)",
+  background: "rgba(18,18,26,0.92)",
+  border: "1px solid rgba(74,65,97,0.7)",
   borderRadius: 28,
   padding: 32,
-  boxShadow: "0 22px 56px rgba(74, 49, 31, 0.08)"
+  boxShadow: "0 30px 70px rgba(4,3,12,0.35)"
 } as const
 
 const eyebrowStyle = {
   margin: 0,
   fontSize: 12,
   letterSpacing: "0.18em",
-  color: "#9b7458"
+  color: "#d4a574"
 } as const
 
 const copyStyle = {
   margin: 0,
-  color: "#6e5848",
+  color: "rgba(240,240,245,0.68)",
   lineHeight: 1.8
 } as const
 
@@ -94,12 +94,12 @@ const panelStyle = {
   marginTop: 20,
   padding: 18,
   borderRadius: 20,
-  background: "#fff8f2",
-  border: "1px solid #e3d0c0"
+  background: "rgba(15,15,23,0.85)",
+  border: "1px solid rgba(74,65,97,0.7)"
 } as const
 
 const miniLabelStyle = {
-  color: "#8b705d",
+  color: "#d4a574",
   fontSize: 12,
   letterSpacing: "0.06em"
 } as const
@@ -110,9 +110,9 @@ const textareaStyle = {
   marginTop: 8,
   padding: "14px 16px",
   borderRadius: 16,
-  border: "1px solid #d9c6b6",
-  background: "#fffdfa",
-  color: "#2f2118",
+  border: "1px solid rgba(74,65,97,0.7)",
+  background: "rgba(10,10,15,0.7)",
+  color: "#f0f0f5",
   fontSize: 14,
   resize: "vertical" as const
 } as const
@@ -128,8 +128,8 @@ const primaryButtonStyle = {
   border: "none",
   borderRadius: 999,
   padding: "12px 18px",
-  background: "linear-gradient(90deg, #7c5234 0%, #b97843 100%)",
-  color: "#fffaf6",
+  background: "linear-gradient(90deg, #8b5cf6 0%, #6d3ef0 100%)",
+  color: "#ffffff",
   cursor: "pointer",
   fontSize: 14
 } as const
@@ -139,7 +139,7 @@ const secondaryLinkStyle = {
   textDecoration: "none",
   borderRadius: 999,
   padding: "12px 18px",
-  background: "#fff8f2",
-  border: "1px solid #dbc5b4",
-  color: "#5f4738"
+  background: "rgba(18,18,26,0.92)",
+  border: "1px solid rgba(74,65,97,0.7)",
+  color: "#f0f0f5"
 } as const

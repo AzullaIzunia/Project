@@ -5,7 +5,9 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { API_BASE, apiUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
+import ProtectedGate from "@/components/protected-gate"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { formatPrice, paymentMethodLabel, statLabel, statusLabel } from "@/lib/display"
 
 type OrderDetail = {
   order_id: number
@@ -45,6 +47,10 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [isAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false
+    return Boolean(localStorage.getItem("token"))
+  })
 
   const fetchOrder = async (authToken: string) => {
     setLoading(true)
@@ -75,7 +81,7 @@ export default function OrderDetailPage() {
     const storedToken = localStorage.getItem("token")
 
     if (!storedToken) {
-      router.push("/login")
+      setLoading(false)
       return
     }
 
@@ -110,6 +116,15 @@ export default function OrderDetailPage() {
     router.push("/payment")
   }
 
+  if (!isAuthenticated) {
+    return (
+      <ProtectedGate
+        redirectTo={`/orders/${id}`}
+        description="กรุณาเข้าสู่ระบบก่อน เพื่อเปิดรายละเอียดออเดอร์ ดูสลิปที่อัปโหลด และชำระเงินต่อหากยังไม่เสร็จ"
+      />
+    )
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
@@ -124,7 +139,7 @@ export default function OrderDetailPage() {
     return (
       <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
         <div className="mx-auto max-w-5xl rounded-[2rem] border border-border bg-card/70 p-10 text-center">
-          <div className="text-red-300">ไม่พบออเดอร์นี้</div>
+          <div className="text-red-200">ไม่พบออเดอร์นี้</div>
           <div className="mt-5">
             <Link href="/orders">
               <Button>กลับไปหน้ารายการออเดอร์</Button>
@@ -148,9 +163,9 @@ export default function OrderDetailPage() {
         <section className="mt-4 rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="text-xs tracking-[0.18em] text-gold">ORDER DETAIL</div>
+              <div className="text-xs tracking-[0.18em] text-gold">รายละเอียดออเดอร์</div>
               <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
-                Order #{order.order_id}
+                ออเดอร์ #{order.order_id}
               </h1>
               <p className="mt-3 text-muted-foreground">
                 {new Date(order.createOrder).toLocaleString()} • {order.user.name} {order.user.surname}
@@ -160,21 +175,30 @@ export default function OrderDetailPage() {
           </div>
 
           {error ? (
-            <div className="mt-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+            <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
               {error}
             </div>
           ) : null}
 
           {notice ? (
-            <div className="mt-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+            <div className="mt-5 rounded-xl border border-emerald-500/30 bg-emerald-500/12 px-4 py-3 text-sm text-emerald-200">
               {notice}
             </div>
           ) : null}
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
-            <InfoBlock label="Payment method" value={order.payment_method.replace("_", " ")} />
-            <InfoBlock label="Total price" value={`${order.total_price} THB`} />
-            <InfoBlock label="Customer email" value={order.user.email} />
+            <InfoBlock label="วิธีชำระเงิน" value={paymentMethodLabel(order.payment_method)} />
+            <InfoBlock label="ยอดรวม" value={formatPrice(order.total_price)} />
+            <InfoBlock label="อีเมลผู้สั่งซื้อ" value={order.user.email} />
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <InfoBlock
+              label="จำนวนสินค้า"
+              value={`${order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} ชิ้น`}
+            />
+            <InfoBlock label="สถานะปัจจุบัน" value={statusLabel(order.latestOrderStatus)} />
+            <InfoBlock label="จำนวนขั้นตอน" value={`${order.order_status.length} ขั้น`} />
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
@@ -195,22 +219,25 @@ export default function OrderDetailPage() {
         </section>
 
         <section className="mt-5 rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
-          <div className="text-xs tracking-[0.18em] text-gold">TIMELINE</div>
-          <h2 className="mt-2 text-2xl font-semibold text-foreground">Status Timeline</h2>
+          <div className="text-xs tracking-[0.18em] text-gold">ลำดับสถานะ</div>
+          <h2 className="mt-2 text-2xl font-semibold text-foreground">ไทม์ไลน์สถานะ</h2>
+          <p className="mt-3 text-sm leading-7 text-muted-foreground">
+            สถานะของออเดอร์นี้ตั้งแต่เริ่มสั่งซื้อไปจนถึงขั้นล่าสุดที่ระบบบันทึกไว้
+          </p>
           <div className="mt-5 flex flex-wrap gap-2">
             {order.order_status.map((status, index) => (
               <span
                 key={`${status}-${index}`}
                 className="rounded-full border border-border bg-background/40 px-3 py-1 text-sm text-muted-foreground"
               >
-                {index + 1}. {status}
+                {index + 1}. {statusLabel(status)}
               </span>
             ))}
           </div>
         </section>
 
         <section className="mt-5 rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
-          <div className="text-xs tracking-[0.18em] text-gold">ITEMS</div>
+          <div className="text-xs tracking-[0.18em] text-gold">รายการสินค้า</div>
           <h2 className="mt-2 text-2xl font-semibold text-foreground">รายการสินค้า</h2>
           <div className="mt-5 grid gap-4">
             {order.orderItems.map((item) => (
@@ -218,23 +245,37 @@ export default function OrderDetailPage() {
                 key={item.orderItem_id}
                 className="rounded-[1.5rem] border border-border bg-background/40 p-5"
               >
+                <div className="mb-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                    <div className="text-xs tracking-[0.16em] text-gold">หมวดหมู่</div>
+                    <div className="mt-2 text-sm text-muted-foreground">{item.product.category}</div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                    <div className="text-xs tracking-[0.16em] text-gold">จำนวน</div>
+                    <div className="mt-2 text-sm text-muted-foreground">{item.quantity} ชิ้น</div>
+                  </div>
+                  <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                    <div className="text-xs tracking-[0.16em] text-gold">ราคา</div>
+                    <div className="mt-2 text-sm text-muted-foreground">{formatPrice(item.price)}</div>
+                  </div>
+                </div>
                 <div className="text-lg font-semibold text-foreground">{item.product.product_name}</div>
                 <div className="mt-2 text-sm text-muted-foreground">
-                  {item.product.category} • {item.price} THB x {item.quantity}
+                  {item.product.category} • {formatPrice(item.price)} x {item.quantity}
                 </div>
                 {item.product.description ? (
                   <p className="mt-4 text-sm leading-7 text-muted-foreground">{item.product.description}</p>
                 ) : null}
                 {item.tracking_status?.length ? (
                   <div className="mt-4">
-                    <div className="text-xs tracking-[0.16em] text-gold">TRACKING</div>
+                    <div className="text-xs tracking-[0.16em] text-gold">การติดตาม</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {item.tracking_status.map((status, index) => (
                         <span
                           key={`${status}-${index}`}
                           className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground"
                         >
-                          {status}
+                          {statusLabel(status)}
                         </span>
                       ))}
                     </div>
@@ -242,9 +283,9 @@ export default function OrderDetailPage() {
                 ) : null}
                 {item.fateResult ? (
                   <div className="mt-4">
-                    <div className="text-xs tracking-[0.16em] text-gold">LINKED FATE RESULT</div>
+                    <div className="text-xs tracking-[0.16em] text-gold">ผลดูดวงที่เชื่อมไว้</div>
                     <p className="mt-2 text-sm leading-7 text-muted-foreground">
-                      {item.fateResult.drawn_stat}: {item.fateResult.result}
+                      {statLabel(item.fateResult.drawn_stat)}: {item.fateResult.result}
                     </p>
                   </div>
                 ) : null}

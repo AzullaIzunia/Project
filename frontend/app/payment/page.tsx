@@ -5,8 +5,10 @@ import { CreditCard, QrCode } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
+import { formatPrice, paymentMethodLabel } from "@/lib/display"
 import { getProductImage } from "@/lib/product-media"
 import { Button } from "@/components/ui/button"
+import ProtectedGate from "@/components/protected-gate"
 import { StatusBadge } from "@/components/ui/status-badge"
 
 type Order = {
@@ -34,13 +36,17 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState("")
+  const [isAuthenticated] = useState(() => {
+    if (typeof window === "undefined") return false
+    return Boolean(localStorage.getItem("token"))
+  })
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const orderId = localStorage.getItem("pending_order_id")
 
     if (!token) {
-      router.push("/login")
+      setLoading(false)
       return
     }
 
@@ -111,11 +117,20 @@ export default function PaymentPage() {
     router.push("/upload-slip")
   }
 
+  if (!isAuthenticated) {
+    return (
+      <ProtectedGate
+        redirectTo="/payment"
+        description="กรุณาเข้าสู่ระบบก่อน เพื่อชำระเงินต่อและอัปโหลดสลิปหากเลือกจ่ายด้วยพร้อมเพย์"
+      />
+    )
+  }
+
   return (
     <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
       <div className="mx-auto max-w-5xl">
         <div className="mb-8">
-          <div className="text-xs tracking-[0.18em] text-gold">PAYMENT</div>
+          <div className="text-xs tracking-[0.18em] text-gold">การชำระเงิน</div>
           <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
             ชำระเงินสำหรับออเดอร์ของคุณ
           </h1>
@@ -125,7 +140,7 @@ export default function PaymentPage() {
         </div>
 
         {error ? (
-          <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/12 px-4 py-3 text-sm text-red-200">
             {error}
           </div>
         ) : null}
@@ -137,23 +152,23 @@ export default function PaymentPage() {
         ) : order ? (
           <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <aside className="rounded-[2rem] border border-border bg-card/70 p-6">
-              <div className="text-xs tracking-[0.18em] text-gold">SUMMARY</div>
+              <div className="text-xs tracking-[0.18em] text-gold">สรุปออเดอร์</div>
               <div className="mt-5 space-y-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Order</span>
+                  <span className="text-muted-foreground">ออเดอร์</span>
                   <strong className="text-foreground">#{order.order_id}</strong>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Method</span>
-                  <strong className="text-foreground">{order.payment_method.replace("_", " ")}</strong>
+                  <span className="text-muted-foreground">วิธีชำระเงิน</span>
+                  <strong className="text-foreground">{paymentMethodLabel(order.payment_method)}</strong>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Status</span>
+                  <span className="text-muted-foreground">สถานะ</span>
                   <StatusBadge status={order.latestOrderStatus} />
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Total</span>
-                  <strong className="text-xl text-foreground">{order.total_price} THB</strong>
+                  <span className="text-muted-foreground">ยอดรวม</span>
+                  <strong className="text-xl text-foreground">{formatPrice(order.total_price)}</strong>
                 </div>
               </div>
 
@@ -203,7 +218,7 @@ export default function PaymentPage() {
             </aside>
 
             <section className="rounded-[2rem] border border-border bg-card/70 p-6">
-              <div className="text-xs tracking-[0.18em] text-gold">ITEMS</div>
+              <div className="text-xs tracking-[0.18em] text-gold">รายการสินค้า</div>
               <div className="mt-5 grid gap-3">
                 {order.orderItems.map((item) => (
                   <div
@@ -228,7 +243,7 @@ export default function PaymentPage() {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link href="/orders">
-                  <Button variant="ghost">กลับไป My Orders</Button>
+                  <Button variant="ghost">กลับไปคำสั่งซื้อของฉัน</Button>
                 </Link>
                 {order.payment_method === "promptpay" && order.latestOrderStatus === "paid" ? (
                   <Button variant="gold" onClick={goToSlipUpload}>
@@ -243,7 +258,7 @@ export default function PaymentPage() {
             <p className="text-muted-foreground">ไม่พบข้อมูลออเดอร์</p>
             <div className="mt-5">
               <Link href="/orders">
-                <Button>กลับไป My Orders</Button>
+                <Button>กลับไปคำสั่งซื้อของฉัน</Button>
               </Link>
             </div>
           </div>

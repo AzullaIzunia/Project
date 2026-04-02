@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
+import { Button } from "@/components/ui/button"
 import { apiUrl } from "@/lib/api"
 import { addToCart } from "@/lib/cart"
+import { formatPrice, statLabel } from "@/lib/display"
 import { getProductImage } from "@/lib/product-media"
 
 type DrawChoice = {
@@ -127,7 +129,7 @@ export default function ChoosePage() {
           <div className="mystic-card p-6 sm:p-8 lg:p-10">
             <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
               <div>
-                <p className="text-xs tracking-[0.18em] text-gold font-body">CHOOSE YOUR TAROT</p>
+                <p className="text-xs tracking-[0.18em] text-gold font-body">เลือกไพ่ของคุณ</p>
                 <h1 className="mt-3 text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-foreground leading-tight">
                   เลือกไพ่เพื่อเปิดคำทำนาย
                 </h1>
@@ -155,10 +157,10 @@ export default function ChoosePage() {
                     className="rounded-2xl border border-border bg-secondary/25 p-3 text-center"
                   >
                     <div className="text-[10px] tracking-[0.16em] text-gold font-body">
-                      TAROT {index + 1}
+                      ไพ่ใบที่ {index + 1}
                     </div>
                     <div className="mt-6 mb-6 text-3xl text-accent">✦</div>
-                    <div className="text-sm font-serif text-foreground">{choice.stat}</div>
+                    <div className="text-sm font-serif text-foreground">{statLabel(choice.stat)}</div>
                   </div>
                 ))}
               </div>
@@ -167,13 +169,13 @@ export default function ChoosePage() {
         </div>
 
         {error ? (
-          <div className="max-w-5xl mx-auto mt-6 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-body">
+          <div className="max-w-5xl mx-auto mt-6 px-4 py-3 rounded-xl bg-red-500/12 border border-red-500/30 text-red-200 text-sm font-body">
             {error}
           </div>
         ) : null}
 
         {notice ? (
-          <div className="max-w-5xl mx-auto mt-6 px-4 py-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm font-body">
+          <div className="max-w-5xl mx-auto mt-6 px-4 py-3 rounded-xl bg-emerald-500/12 border border-emerald-500/30 text-emerald-200 text-sm font-body">
             {notice}
           </div>
         ) : null}
@@ -181,7 +183,7 @@ export default function ChoosePage() {
         <section className="max-w-6xl mx-auto mt-10">
           <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
             <div>
-              <div className="text-xs tracking-[0.18em] text-gold font-body">TAROT SPREAD</div>
+              <div className="text-xs tracking-[0.18em] text-gold font-body">ไพ่ที่ปรากฏต่อหน้า</div>
               <h2 className="mt-2 text-2xl sm:text-3xl font-serif font-bold text-foreground">
                 ไพ่ที่เปิดอยู่ตรงหน้าคุณ
               </h2>
@@ -213,7 +215,7 @@ export default function ChoosePage() {
                   <div className="rounded-[22px] border border-border bg-gradient-to-b from-secondary/35 to-background/30 p-4 h-full min-h-[380px] flex flex-col">
                     <div className="flex items-center justify-between">
                       <span className="mystic-badge bg-gold/10 text-gold border-gold/30">
-                        Tarot {index + 1}
+                        ไพ่ {index + 1}
                       </span>
                       <span className="text-accent text-xl">✦</span>
                     </div>
@@ -223,7 +225,7 @@ export default function ChoosePage() {
                         ✦
                       </div>
                       <div className="mt-8 text-2xl font-serif font-semibold text-foreground">
-                        {choice.stat}
+                        {statLabel(choice.stat)}
                       </div>
                       <p className="mt-3 text-sm text-muted-foreground font-body max-w-[14rem] leading-6">
                         ไพ่ใบนี้สะท้อนพลังระดับ {choice.value} และพร้อมเปิดเผยเส้นทางที่ต่างออกไปให้คุณ
@@ -251,30 +253,24 @@ export default function ChoosePage() {
           <section className="max-w-6xl mx-auto mt-12 grid xl:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
             <div className="xl:sticky xl:top-24">
               <div className="mystic-card p-6 sm:p-7">
-                <div className="text-xs tracking-[0.18em] text-gold font-body">YOUR READING</div>
+                <div className="text-xs tracking-[0.18em] text-gold font-body">ผลการเปิดไพ่ของคุณ</div>
                 <div className="mt-4 rounded-2xl border border-border bg-secondary/30 p-5">
                   <div className="w-16 h-16 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center text-accent text-2xl">
                     ✦
                   </div>
                   <h2 className="mt-5 text-3xl font-serif font-bold text-foreground">{result.stone}</h2>
-                  <p className="mt-2 text-sm text-accent font-body">พลังที่เลือก: {selectedStat}</p>
+                  <p className="mt-2 text-sm text-accent font-body">พลังที่เลือก: {statLabel(selectedStat)}</p>
                   <p className="mt-5 text-muted-foreground font-body leading-8">{result.result}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-3 mt-6">
                   <Link href={`/recommend/${result.result_id}`}>
-                    <button
-                      type="button"
-                      className="glow-btn px-4 py-2 rounded-lg bg-primary text-primary-foreground border border-black font-body"
-                    >
+                    <Button>
                       เปิดหน้าสินค้าเพิ่มเติม
-                    </button>
+                    </Button>
                   </Link>
-                  <Link
-                    href="/draw"
-                    className="px-4 py-2 rounded-lg bg-secondary text-secondary-foreground border border-border font-body no-underline"
-                  >
-                    ดูดวงใหม่
+                  <Link href="/draw" className="no-underline">
+                    <Button variant="ghost">ดูดวงใหม่</Button>
                   </Link>
                 </div>
               </div>
@@ -283,7 +279,7 @@ export default function ChoosePage() {
             <div className="mystic-card p-6 sm:p-7">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <div className="text-xs tracking-[0.18em] text-gold font-body">RECOMMENDED PRODUCTS</div>
+                  <div className="text-xs tracking-[0.18em] text-gold font-body">สินค้าแนะนำจากคำทำนาย</div>
                   <h2 className="mt-2 text-3xl font-serif font-bold text-foreground">สินค้าแนะนำ</h2>
                   <p className="mt-2 text-sm text-muted-foreground font-body">
                     สินค้าเหล่านี้คัดจากพลังของไพ่ที่คุณเลือก สามารถเปิดดูรายละเอียดหรือหยิบใส่ตะกร้าได้ทันที
@@ -301,7 +297,7 @@ export default function ChoosePage() {
                   {recommendedProducts.map((product) => (
                     <article
                       key={product.product_id}
-                      className="rounded-2xl border border-border bg-white/70 p-4 flex flex-col"
+                      className="rounded-2xl border border-border bg-background/45 p-4 flex flex-col"
                     >
                       <img
                         src={getProductImage(product)}
@@ -312,15 +308,12 @@ export default function ChoosePage() {
                         {product.product_name}
                       </h3>
                       <p className="mt-1 text-sm text-muted-foreground font-body">
-                        {product.category} • {product.price} THB
+                        {product.category} • {formatPrice(product.price)}
                       </p>
 
                       <div className="flex flex-wrap gap-2 mt-4">
-                        <Link
-                          href={`/products/${product.product_id}`}
-                          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground border border-black font-body text-sm no-underline"
-                        >
-                          ดูหน้าสินค้า
+                        <Link href={`/products/${product.product_id}`} className="no-underline">
+                          <Button className="text-sm">ดูหน้าสินค้า</Button>
                         </Link>
                         <button
                           type="button"
@@ -345,13 +338,13 @@ export default function ChoosePage() {
               ) : null}
 
               <div className="mt-6 pt-5 border-t border-border">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={() => router.back()}
-                  className="px-4 py-2 rounded-lg bg-transparent text-muted-foreground border border-border font-body"
                 >
                   ย้อนกลับ
-                </button>
+                </Button>
               </div>
             </div>
           </section>

@@ -119,7 +119,7 @@ export default function ForgotPasswordPage() {
     <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
       <div className="mx-auto max-w-2xl">
         <section className="rounded-[2rem] border border-border bg-card/70 p-6 sm:p-8">
-          <div className="text-xs tracking-[0.18em] text-gold">ACCOUNT RECOVERY</div>
+          <div className="text-xs tracking-[0.18em] text-gold">กู้คืนบัญชี</div>
           <h1 className="mt-3 text-3xl font-semibold text-foreground md:text-4xl">
             Forgot Password
           </h1>
@@ -196,26 +196,26 @@ export default function ForgotPasswordPage() {
 
             {step === "done" ? (
               <Button type="button" onClick={() => router.push("/login")} className="w-full justify-center">
-                กลับไปหน้า Login
+                กลับไปหน้าเข้าสู่ระบบ
               </Button>
             ) : null}
           </div>
 
           {error ? (
-            <div className="mt-5 rounded-xl border border-red-800/50 bg-red-900/20 px-4 py-3 text-sm text-red-300">
+            <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
             </div>
           ) : null}
 
           {message ? (
-            <div className="mt-5 rounded-xl border border-green-800/50 bg-green-900/20 px-4 py-3 text-sm text-green-300">
+            <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               {message}
             </div>
           ) : null}
 
           <div className="mt-6">
             <Link href="/login" className="text-sm text-muted-foreground no-underline hover:text-foreground">
-              ← กลับไปหน้า Login
+              ← กลับไปหน้าเข้าสู่ระบบ
             </Link>
           </div>
         </section>

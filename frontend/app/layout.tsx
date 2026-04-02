@@ -4,8 +4,8 @@ import Navbar from "@/components/navbar"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Florder",
-  description: "Fortune and shop demo experience",
+  title: "DUDUANG",
+  description: "ประสบการณ์ดูดวงและร้านค้าในระบบเดียว",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
