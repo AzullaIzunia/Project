@@ -2,51 +2,61 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Menu, ShoppingBag, Sparkles, User, X } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { ChevronRight, Menu, ShoppingBag, Sparkles, User, X } from "lucide-react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { Button } from "@/components/ui/button"
-import { isAdmin, removeToken } from "@/lib/auth"
+import { getAuthEventName, isAdmin, removeToken } from "@/lib/auth"
 import { getCartCount } from "@/lib/cart"
 import { cn } from "@/lib/utils"
 
-const mainLinks = [
+const userLinks = [
   { href: "/draw", label: "ดูดวง" },
   { href: "/shop", label: "ร้านค้า" },
   { href: "/about", label: "วิธีใช้งาน" },
   { href: "/fate-history", label: "ประวัติดวง" },
 ]
 
+const adminLinks = [
+  { href: "/admin", label: "แดชบอร์ด" },
+  { href: "/admin/products", label: "จัดการสินค้า" },
+  { href: "/shop", label: "ร้านค้า" },
+  { href: "/about", label: "วิธีใช้งาน" },
+]
+
+const EMPTY_SNAPSHOT = "0|0|0"
+
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [admin, setAdmin] = useState(false)
-  const [cartCount, setCartCount] = useState(0)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const accountMenuRef = useRef<HTMLDivElement | null>(null)
-
-  useEffect(() => {
-    const sync = () => {
+  const authEventName = getAuthEventName()
+  const snapshot = useSyncExternalStore(
+    (onStoreChange) => {
+      if (typeof window === "undefined") return () => {}
+      window.addEventListener("storage", onStoreChange)
+      window.addEventListener("cartUpdated", onStoreChange)
+      window.addEventListener(authEventName, onStoreChange)
+      window.addEventListener("focus", onStoreChange)
+      return () => {
+        window.removeEventListener("storage", onStoreChange)
+        window.removeEventListener("cartUpdated", onStoreChange)
+        window.removeEventListener(authEventName, onStoreChange)
+        window.removeEventListener("focus", onStoreChange)
+      }
+    },
+    () => {
+      if (typeof window === "undefined") return EMPTY_SNAPSHOT
       const token = localStorage.getItem("token")
-      setLoggedIn(Boolean(token))
-      setAdmin(isAdmin())
-      setCartCount(getCartCount())
-    }
-
-    sync()
-    window.addEventListener("storage", sync)
-    window.addEventListener("cartUpdated", sync)
-
-    return () => {
-      window.removeEventListener("storage", sync)
-      window.removeEventListener("cartUpdated", sync)
-    }
-  }, [])
-
-  useEffect(() => {
-    setAccountMenuOpen(false)
-  }, [pathname])
+      return `${token ? 1 : 0}|${isAdmin() ? 1 : 0}|${getCartCount()}`
+    },
+    () => EMPTY_SNAPSHOT
+  )
+  const [loggedInFlag, adminFlag, cartCountValue] = snapshot.split("|")
+  const loggedIn = loggedInFlag === "1"
+  const admin = adminFlag === "1"
+  const cartCount = Number(cartCountValue) || 0
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -62,13 +72,16 @@ export default function Navbar() {
 
   const handleLogout = () => {
     removeToken()
-    setLoggedIn(false)
-    setAdmin(false)
-    setCartCount(0)
     setOpen(false)
     setAccountMenuOpen(false)
     router.push("/login")
   }
+  const closeMenus = () => {
+    setOpen(false)
+    setAccountMenuOpen(false)
+  }
+
+  const navLinks = admin ? adminLinks : userLinks
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/80 bg-[#0f0f17]/92 backdrop-blur-md">
@@ -83,10 +96,11 @@ export default function Navbar() {
         </Link>
 
         <div className="hidden items-center gap-9 md:flex">
-          {mainLinks.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
+              onClick={closeMenus}
               className={cn(
                 "text-sm font-medium no-underline transition-colors",
                 pathname === link.href ? "text-foreground" : "text-muted-foreground hover:text-foreground"
@@ -95,17 +109,6 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
-          {admin ? (
-            <Link
-              href="/admin"
-              className={cn(
-                "text-sm font-medium no-underline transition-colors",
-                pathname === "/admin" ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              หลังบ้าน
-            </Link>
-          ) : null}
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -123,31 +126,59 @@ export default function Navbar() {
           {loggedIn ? (
             <div className="relative" ref={accountMenuRef}>
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
                 onClick={() => setAccountMenuOpen((value) => !value)}
-                className="gap-2 px-4"
+                className="gap-2 border border-white/10 bg-[#1c1530] px-4 text-white hover:bg-[#2b1e49]"
+                aria-expanded={accountMenuOpen}
+                aria-haspopup="menu"
               >
                 <User className="h-4 w-4" />
-                บัญชีผู้ใช้
+                เมนู
+                <ChevronRight
+                  className={cn(
+                    "ml-0.5 h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+                    accountMenuOpen ? "rotate-90" : "rotate-0"
+                  )}
+                />
               </Button>
 
               {accountMenuOpen ? (
                 <div className="absolute right-0 top-[calc(100%+0.75rem)] w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#151320]/96 p-2 shadow-[0_20px_60px_rgba(5,4,14,0.4)] backdrop-blur-xl">
                   <Link
                     href="/profile"
+                    onClick={closeMenus}
                     className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground no-underline transition-colors hover:bg-white/5"
                   >
                     <User className="h-4 w-4 text-gold" />
-                    โปรไฟล์
+                    ดูโปรไฟล์
+                  </Link>
+                  <Link
+                    href="/fate-history"
+                    onClick={closeMenus}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground no-underline transition-colors hover:bg-white/5"
+                  >
+                    <Sparkles className="h-4 w-4 text-gold" />
+                    ดูประวัติ
                   </Link>
                   {admin ? (
                     <Link
                       href="/admin"
+                      onClick={closeMenus}
                       className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground no-underline transition-colors hover:bg-white/5"
                     >
                       <Sparkles className="h-4 w-4 text-gold" />
-                      แดชบอร์ด
+                      ดูแดชบอร์ด
+                    </Link>
+                  ) : null}
+                  {admin ? (
+                    <Link
+                      href="/admin/products"
+                      onClick={closeMenus}
+                      className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-foreground no-underline transition-colors hover:bg-white/5"
+                    >
+                      <ShoppingBag className="h-4 w-4 text-gold" />
+                      จัดการสินค้า
                     </Link>
                   ) : null}
                   <button
@@ -163,6 +194,11 @@ export default function Navbar() {
             </div>
           ) : (
             <>
+              <Link href="/register">
+                <Button variant="secondary" size="sm" className="px-5">
+                  สมัครสมาชิก
+                </Button>
+              </Link>
               <Link href="/login">
                 <Button size="sm" className="px-5">
                   เข้าสู่ระบบ
@@ -185,7 +221,7 @@ export default function Navbar() {
       {open ? (
         <div className="border-t border-border bg-[#0f0f17] px-4 py-4 md:hidden">
           <div className="mx-auto flex max-w-7xl flex-col gap-2">
-            {mainLinks.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -200,15 +236,6 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {admin ? (
-              <Link
-                href="/admin"
-                onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground no-underline hover:bg-secondary/80 hover:text-foreground"
-              >
-                หลังบ้าน
-              </Link>
-            ) : null}
             <div className="mt-2 grid grid-cols-2 gap-2">
               <Link href="/cart" onClick={() => setOpen(false)}>
                 <Button variant="ghost" className="w-full justify-center">
@@ -221,17 +248,44 @@ export default function Navbar() {
                   <Link href="/profile" onClick={() => setOpen(false)}>
                     <Button variant="ghost" className="w-full justify-center">
                       <User className="h-4 w-4" />
-                      โปรไฟล์
+                      ดูโปรไฟล์
                     </Button>
                   </Link>
+                  <Link href="/fate-history" onClick={() => setOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-center">
+                      <Sparkles className="h-4 w-4" />
+                      ดูประวัติ
+                    </Button>
+                  </Link>
+                  {admin ? (
+                    <Link href="/admin" onClick={() => setOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-center">
+                        <Sparkles className="h-4 w-4" />
+                        ดูแดชบอร์ด
+                      </Button>
+                    </Link>
+                  ) : null}
+                  {admin ? (
+                    <Link href="/admin/products" onClick={() => setOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-center">
+                        <ShoppingBag className="h-4 w-4" />
+                        จัดการสินค้า
+                      </Button>
+                    </Link>
+                  ) : null}
                   <Button variant="secondary" className="col-span-2" onClick={handleLogout}>
                     ออกจากระบบ
                   </Button>
                 </>
               ) : (
                 <>
+                  <Link href="/register" onClick={() => setOpen(false)}>
+                    <Button variant="secondary" className="w-full justify-center">
+                      สมัครสมาชิก
+                    </Button>
+                  </Link>
                   <Link href="/login" onClick={() => setOpen(false)}>
-                    <Button className="col-span-2 w-full justify-center">เข้าสู่ระบบ</Button>
+                    <Button className="w-full justify-center">เข้าสู่ระบบ</Button>
                   </Link>
                 </>
               )}

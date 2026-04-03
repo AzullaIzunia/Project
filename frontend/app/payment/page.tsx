@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { CreditCard, QrCode } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -10,6 +11,7 @@ import { getProductImage } from "@/lib/product-media"
 import { Button } from "@/components/ui/button"
 import ProtectedGate from "@/components/protected-gate"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { Input } from "@/components/ui/input"
 
 type Order = {
   order_id: number
@@ -36,10 +38,38 @@ export default function PaymentPage() {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState("")
+  const [cardForm, setCardForm] = useState({
+    holderName: "",
+    cardNumber: "",
+    expiry: "",
+    cvv: "",
+  })
   const [isAuthenticated] = useState(() => {
     if (typeof window === "undefined") return false
     return Boolean(localStorage.getItem("token"))
   })
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
+
+  const formatCardNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16)
+    const groups = digits.match(/.{1,4}/g)
+    return groups ? groups.join(" ") : ""
+  }
+
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4)
+    if (digits.length <= 2) return digits
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`
+  }
+
+  const validateCardForm = () => {
+    const cardNumberDigits = cardForm.cardNumber.replace(/\s/g, "")
+    if (cardNumberDigits.length !== 16) {
+      return "เลขบัตรต้องครบ 16 หลัก"
+    }
+    return ""
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -71,8 +101,8 @@ export default function PaymentPage() {
         }
 
         setOrder(data)
-      } catch (err: any) {
-        setError(err.message || "โหลดข้อมูลการชำระเงินไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดข้อมูลการชำระเงินไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }
@@ -85,6 +115,11 @@ export default function PaymentPage() {
     const token = localStorage.getItem("token")
 
     if (!order || !token) return
+    const cardError = validateCardForm()
+    if (cardError) {
+      setError(cardError)
+      return
+    }
 
     setProcessing(true)
     setError("")
@@ -186,10 +221,12 @@ export default function PaymentPage() {
                     <p className="mt-3 text-sm leading-7 text-muted-foreground">
                       สแกน QR code ด้านล่างเพื่อชำระเงิน แล้วอัปโหลดสลิปให้แอดมินตรวจสอบ
                     </p>
-                    <img
-                      src="/promptpay-qr-demo.svg"
+                    <Image
+                      src="/promptpay-qr-real.jpeg"
                       alt="PromptPay QR"
-                      className="mt-5 w-full rounded-2xl border border-border bg-white p-4"
+                      width={600}
+                      height={820}
+                      className="mt-5 w-full rounded-2xl border border-border bg-white p-2"
                     />
                     <Button className="mt-5 w-full justify-center" onClick={goToSlipUpload}>
                       ไปหน้าอัปโหลดสลิป
@@ -202,8 +239,78 @@ export default function PaymentPage() {
                       Credit Card
                     </div>
                     <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                      ระบบนี้ใช้การชำระเงินแบบจำลอง เมื่อกดยืนยันจะเรียก backend ทันที
+                      กรอกเลขบัตรให้ครบ 16 หลักก่อนชำระเงิน ข้อมูลช่องอื่นใส่หรือเว้นว่างก็ได้
                     </p>
+                    <div className="mt-4 rounded-2xl border border-gold/20 bg-gradient-to-br from-[#191628] via-[#121321] to-[#0f1019] p-4 shadow-[0_16px_44px_rgba(7,6,16,0.38)]">
+                      <div className="text-xs tracking-[0.16em] text-gold">ตัวอย่างบัตร</div>
+                      <div className="mt-3 text-lg font-semibold text-foreground">
+                        {cardForm.cardNumber || "•••• •••• •••• ••••"}
+                      </div>
+                      <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{cardForm.holderName || "CARD HOLDER"}</span>
+                        <span>{cardForm.expiry || "MM/YY"}</span>
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-3">
+                      <Input
+                        id="card-holder"
+                        label="ชื่อบนบัตร"
+                        placeholder="เช่น AZUL TANASIN"
+                        value={cardForm.holderName}
+                        onChange={(event) => {
+                          setCardForm((current) => ({ ...current, holderName: event.target.value }))
+                          setError("")
+                        }}
+                        disabled={processing || order.latestOrderStatus !== "paid"}
+                      />
+                      <Input
+                        id="card-number"
+                        label="เลขบัตร"
+                        placeholder="1234 5678 9012 3456"
+                        inputMode="numeric"
+                        value={cardForm.cardNumber}
+                        onChange={(event) => {
+                          setCardForm((current) => ({
+                            ...current,
+                            cardNumber: formatCardNumber(event.target.value),
+                          }))
+                          setError("")
+                        }}
+                        disabled={processing || order.latestOrderStatus !== "paid"}
+                      />
+                      <div className="grid grid-cols-2 gap-3">
+                        <Input
+                          id="card-expiry"
+                          label="วันหมดอายุ (MM/YY)"
+                          placeholder="08/29"
+                          inputMode="numeric"
+                          value={cardForm.expiry}
+                          onChange={(event) => {
+                            setCardForm((current) => ({
+                              ...current,
+                              expiry: formatExpiry(event.target.value),
+                            }))
+                            setError("")
+                          }}
+                          disabled={processing || order.latestOrderStatus !== "paid"}
+                        />
+                        <Input
+                          id="card-cvv"
+                          label="CVV"
+                          placeholder="123"
+                          inputMode="numeric"
+                          value={cardForm.cvv}
+                          onChange={(event) => {
+                            setCardForm((current) => ({
+                              ...current,
+                              cvv: event.target.value.replace(/\D/g, "").slice(0, 4),
+                            }))
+                            setError("")
+                          }}
+                          disabled={processing || order.latestOrderStatus !== "paid"}
+                        />
+                      </div>
+                    </div>
                     <Button
                       className="mt-5 w-full justify-center"
                       onClick={payByCard}
@@ -226,9 +333,12 @@ export default function PaymentPage() {
                     className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background/40 px-4 py-3"
                   >
                     <div className="flex items-center gap-3">
-                      <img
+                      <Image
                         src={getProductImage(item.product)}
                         alt={item.product.product_name}
+                        width={56}
+                        height={56}
+                        unoptimized
                         className="h-14 w-14 rounded-xl border border-border object-cover"
                       />
                       <div>

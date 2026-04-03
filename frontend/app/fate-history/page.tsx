@@ -29,6 +29,8 @@ export default function FateHistoryPage() {
     if (typeof window === "undefined") return false
     return Boolean(localStorage.getItem("token"))
   })
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -53,8 +55,8 @@ export default function FateHistoryPage() {
         }
 
         setItems(data)
-      } catch (err: any) {
-        setError(err.message || "โหลดประวัติผลดูดวงไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดประวัติผลดูดวงไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }

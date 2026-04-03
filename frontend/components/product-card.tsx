@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { ShoppingBag } from "lucide-react"
 import { addToCart } from "@/lib/cart"
@@ -20,9 +21,12 @@ export default function ProductCard({ product }: { product: Product }) {
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card transition-transform hover:-translate-y-1">
       <Link href={`/products/${product.product_id}`} className="no-underline">
-        <img
+        <Image
           src={getProductImage(product)}
           alt={product.product_name}
+          width={800}
+          height={800}
+          unoptimized
           className="aspect-square w-full object-cover"
         />
       </Link>

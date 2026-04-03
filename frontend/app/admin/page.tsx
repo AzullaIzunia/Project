@@ -1,8 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { Eye, LayoutDashboard, Package, CreditCard, CheckCircle, ShoppingCart, User, Sparkles } from "lucide-react"
-import { useEffect, useState } from "react"
+import { Eye, LayoutDashboard, Package, CreditCard, ShoppingCart, Sparkles } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -75,16 +75,13 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
-  const [isAuthenticated] = useState(() => {
-    if (typeof window === "undefined") return false
-    return Boolean(localStorage.getItem("token"))
-  })
-  const [hasAdminAccess] = useState(() => {
-    if (typeof window === "undefined") return false
-    return isAdmin()
-  })
+  const [authReady, setAuthReady] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [hasAdminAccess, setHasAdminAccess] = useState(false)
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
-  const loadData = async (authToken: string) => {
+  const loadData = useCallback(async (authToken: string) => {
     setLoading(true)
     setError("")
 
@@ -112,15 +109,20 @@ export default function AdminPage() {
       setDashboard(dashboardData)
       setPendingPayments(paymentsData)
       setOrders(ordersData)
-    } catch (err: any) {
-      setError(err.message || "โหลดข้อมูลหลังบ้านไม่สำเร็จ")
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "โหลดข้อมูลหลังบ้านไม่สำเร็จ"))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token")
+    const adminAccess = isAdmin()
+
+    setIsAuthenticated(Boolean(storedToken))
+    setHasAdminAccess(adminAccess)
+    setAuthReady(true)
 
     if (!storedToken) {
       setLoading(false)
@@ -129,7 +131,7 @@ export default function AdminPage() {
 
     setToken(storedToken)
     loadData(storedToken)
-  }, [router])
+  }, [loadData])
 
   const approvePayment = async (orderId: number) => {
     const res = await fetch(apiUrl(`/api/orders/${orderId}/approve`), {
@@ -203,6 +205,16 @@ export default function AdminPage() {
         },
       ]
     : []
+
+  if (!authReady) {
+    return (
+      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
+        <div className="mx-auto max-w-7xl rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
+          กำลังตรวจสอบสิทธิ์...
+        </div>
+      </main>
+    )
+  }
 
   if (!isAuthenticated) {
     return (
@@ -370,10 +382,12 @@ export default function AdminPage() {
                   <CreditCard className="h-5 w-5 text-primary" />
                   <span className="font-medium text-foreground">ตรวจสอบการชำระเงิน</span>
                 </button>
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-background/40 p-4">
-                  <User className="h-5 w-5 text-primary" />
-                  <span className="font-medium text-foreground">ภาพรวมผู้ใช้งาน</span>
-                </div>
+                <Link href="/admin/products" className="no-underline">
+                  <div className="flex items-center gap-3 rounded-xl border border-border bg-background/40 p-4 transition-colors hover:bg-background/70">
+                    <Package className="h-5 w-5 text-primary" />
+                    <span className="font-medium text-foreground">จัดการสินค้า</span>
+                  </div>
+                </Link>
               </div>
             </div>
           </section>

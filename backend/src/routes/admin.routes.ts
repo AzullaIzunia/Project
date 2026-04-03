@@ -5,7 +5,7 @@ import { prisma } from "../lib/prisma"
 const router = Router()
 
 /* =======================================================
-   📊 Admin Dashboard Summary
+   Admin Dashboard Summary
 ======================================================= */
 router.get("/dashboard", authenticate, requireAdmin, async (req, res) => {
   try {
@@ -53,7 +53,7 @@ router.get("/dashboard", authenticate, requireAdmin, async (req, res) => {
 
 
 /* =======================================================
-   👮 Promote User to Admin
+   Promote User to Admin
 ======================================================= */
 router.post("/promote/:userId", authenticate, requireAdmin, async (req, res) => {
   try {
@@ -84,7 +84,7 @@ router.post("/promote/:userId", authenticate, requireAdmin, async (req, res) => 
 })
 
 /* =======================================================
-   💳 Admin - Pending Payment Slips
+   Admin - Pending Payment Slips
 ======================================================= */
 router.get("/pending-payments", authenticate, requireAdmin, async (req, res) => {
   try {

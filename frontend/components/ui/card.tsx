@@ -44,7 +44,7 @@ export function CardFooter({
   return <div className={cn("px-6 pb-6 pt-4 border-t border-border", className)}>{children}</div>
 }
 
-export function CardContent({ className, ...props }: any) {
+export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div className={`p-6 ${className}`} {...props} />
   )

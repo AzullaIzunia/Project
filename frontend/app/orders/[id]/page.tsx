@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { API_BASE, apiUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -51,8 +51,10 @@ export default function OrderDetailPage() {
     if (typeof window === "undefined") return false
     return Boolean(localStorage.getItem("token"))
   })
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
-  const fetchOrder = async (authToken: string) => {
+  const fetchOrder = useCallback(async (authToken: string) => {
     setLoading(true)
     setError("")
 
@@ -70,12 +72,12 @@ export default function OrderDetailPage() {
       }
 
       setOrder(data)
-    } catch (err: any) {
-      setError(err.message || "โหลดรายละเอียดออเดอร์ไม่สำเร็จ")
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "โหลดรายละเอียดออเดอร์ไม่สำเร็จ"))
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token")
@@ -87,7 +89,7 @@ export default function OrderDetailPage() {
 
     setToken(storedToken)
     fetchOrder(storedToken)
-  }, [id, router])
+  }, [fetchOrder])
 
   const cancelOrder = async () => {
     if (!order) return

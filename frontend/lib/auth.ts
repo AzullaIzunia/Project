@@ -1,4 +1,5 @@
 const TOKEN_KEY = "token"
+const AUTH_EVENT = "authUpdated"
 
 export function getToken(): string | null {
   if (typeof window === "undefined") return null
@@ -8,6 +9,7 @@ export function getToken(): string | null {
 export function setToken(token: string) {
   if (typeof window === "undefined") return
   localStorage.setItem(TOKEN_KEY, token)
+  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function removeToken() {
@@ -18,6 +20,7 @@ export function removeToken() {
   localStorage.removeItem("result")
   localStorage.removeItem("address")
   localStorage.removeItem("order_note")
+  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function parseJwt(token: string): Record<string, unknown> | null {
@@ -46,4 +49,8 @@ export function isAdmin() {
 export function authHeaders() {
   const token = getToken()
   return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+export function getAuthEventName() {
+  return AUTH_EVENT
 }

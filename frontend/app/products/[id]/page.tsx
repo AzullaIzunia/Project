@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
@@ -27,6 +28,8 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState("")
   const [error, setError] = useState("")
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -49,8 +52,8 @@ export default function ProductDetailPage() {
           }).slice(0, 4)
 
         setRelatedProducts(related)
-      } catch (err: any) {
-        setError(err.message || "โหลดข้อมูลสินค้าไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดข้อมูลสินค้าไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }
@@ -107,9 +110,12 @@ export default function ProductDetailPage() {
           <>
             <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
               <div className="overflow-hidden rounded-[2rem] border border-border bg-card/80">
-                <img
+                <Image
                   src={getProductImage(product)}
                   alt={product.product_name}
+                  width={960}
+                  height={960}
+                  unoptimized
                   className="aspect-square w-full object-cover"
                 />
               </div>
@@ -180,9 +186,12 @@ export default function ProductDetailPage() {
                       className="overflow-hidden rounded-[1.75rem] border border-border bg-card/80 shadow-[0_18px_48px_rgba(4,3,12,0.22)] transition-transform hover:-translate-y-1"
                     >
                       <Link href={`/products/${related.product_id}`} className="no-underline">
-                        <img
+                        <Image
                           src={getProductImage(related)}
                           alt={related.product_name}
+                          width={800}
+                          height={800}
+                          unoptimized
                           className="aspect-square w-full object-cover"
                         />
                       </Link>

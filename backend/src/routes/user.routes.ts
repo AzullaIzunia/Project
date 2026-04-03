@@ -22,12 +22,24 @@ router.get("/me", authenticate, async (req: any, res) => {
 
 // PUT /api/user/update
 router.put("/update", authenticate, async (req: any, res) => {
-  const { name, address, telephone, password } = req.body
+  const { name, address, telephone, password, email } = req.body
 
   const data: any = {
     name,
     address,
     telephone
+  }
+
+  if (email) {
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    })
+
+    if (existingUser && existingUser.user_id !== req.user.user_id) {
+      return res.status(400).json({ error: "อีเมลนี้ถูกใช้งานแล้ว" })
+    }
+
+    data.email = email
   }
 
   if (password) {

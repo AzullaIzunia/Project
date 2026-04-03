@@ -1,7 +1,8 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { CartItem, clearCart, getCart, removeFromCart, updateCartQuantity } from "@/lib/cart"
@@ -11,16 +12,10 @@ import { Button } from "@/components/ui/button"
 
 export default function CartPage() {
   const router = useRouter()
-  const [items, setItems] = useState<CartItem[]>([])
+  const [items, setItems] = useState<CartItem[]>(() => getCart())
   const [paymentMethod, setPaymentMethod] = useState<"promptpay" | "credit_card">("promptpay")
-  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-
-  useEffect(() => {
-    setItems(getCart())
-    setLoading(false)
-  }, [])
 
   const syncCart = () => {
     setItems(getCart())
@@ -71,16 +66,6 @@ export default function CartPage() {
     router.push("/payment")
   }
 
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
-        <section className="mx-auto max-w-6xl rounded-[2rem] border border-border bg-card/70 p-10 text-center text-muted-foreground">
-          กำลังโหลดตะกร้า...
-        </section>
-      </main>
-    )
-  }
-
   return (
     <main className="min-h-screen bg-background px-4 pb-16 pt-10 sm:px-6">
       <div className="mx-auto max-w-6xl">
@@ -116,9 +101,12 @@ export default function CartPage() {
               {items.map(item => (
                 <article key={item.product_id} className="rounded-[1.75rem] border border-border bg-card/70 p-5">
                   <div className="grid gap-4 sm:grid-cols-[96px_1fr] sm:items-start">
-                    <img
+                    <Image
                       src={getProductImage(item)}
                       alt={item.product_name}
+                      width={96}
+                      height={96}
+                      unoptimized
                       className="h-24 w-24 rounded-2xl border border-border object-cover"
                     />
                     <div>
