@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { BookOpen, LogOut, MapPin, Package, User } from "lucide-react"
+import { BookOpen, LogOut, Package, User } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
@@ -20,6 +20,14 @@ type UserOrder = {
   createOrder: string
 }
 
+type UpdateRequestBody = {
+  name: string
+  address: string
+  telephone: string
+  password?: string
+  email?: string
+}
+
 const tabs = [
   { id: "profile", label: "ข้อมูลส่วนตัว", icon: User },
   { id: "orders", label: "คำสั่งซื้อ", icon: Package },
@@ -33,6 +41,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [pendingSaveBody, setPendingSaveBody] = useState<UpdateRequestBody | null>(null)
+  const [pendingChangedItems, setPendingChangedItems] = useState("")
   const [recentOrders, setRecentOrders] = useState<UserOrder[]>([])
   const [isAuthenticated] = useState(() => {
     if (typeof window === "undefined") return false
@@ -40,10 +51,16 @@ export default function ProfilePage() {
   })
   const [form, setForm] = useState({
     name: "",
+    email: "",
+    newEmail: "",
+    confirmNewEmail: "",
     address: "",
     telephone: "",
     password: "",
+    confirmPassword: "",
   })
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -77,13 +94,17 @@ export default function ProfilePage() {
 
         setForm({
           name: userData.name || "",
+          email: userData.email || "",
+          newEmail: "",
+          confirmNewEmail: "",
           address: userData.address || "",
           telephone: userData.telephone || "",
           password: "",
+          confirmPassword: "",
         })
         setRecentOrders((ordersData || []).slice(0, 3))
-      } catch (err: any) {
-        setError(err.message || "โหลดข้อมูลไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดข้อมูลไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }
@@ -92,27 +113,17 @@ export default function ProfilePage() {
     fetchProfile()
   }, [router])
 
-  const handleSave = async () => {
+  const submitProfileUpdate = async (body: UpdateRequestBody) => {
     const token = localStorage.getItem("token")
 
     if (!token) {
       return
     }
 
-    setError("")
-    setNotice("")
-
-    if (!form.name.trim()) {
-      setError("กรุณากรอกชื่อ")
-      return
-    }
-
-    if (form.password && form.password.length < 6) {
-      setError("รหัสผ่านใหม่ควรยาวอย่างน้อย 6 ตัวอักษร")
-      return
-    }
-
     setSaving(true)
+    setConfirmDialogOpen(false)
+    setPendingSaveBody(null)
+    setPendingChangedItems("")
 
     const res = await fetch(apiUrl("/api/user/update"), {
       method: "PUT",
@@ -120,7 +131,7 @@ export default function ProfilePage() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(form),
+      body: JSON.stringify(body),
     })
 
     const data = await res.json()
@@ -133,10 +144,83 @@ export default function ProfilePage() {
 
     setForm((current) => ({
       ...current,
+      email: data.email || current.email,
+      newEmail: "",
+      confirmNewEmail: "",
       password: "",
+      confirmPassword: "",
     }))
     setNotice("อัปเดตข้อมูลเรียบร้อยแล้ว")
     setSaving(false)
+  }
+
+  const handleSave = async () => {
+    setError("")
+    setNotice("")
+
+    if (!form.name.trim()) {
+      setError("กรุณากรอกชื่อ")
+      return
+    }
+
+    const isChangingPassword = form.password.trim().length > 0
+    const isChangingEmail = form.newEmail.trim().length > 0
+
+    if (isChangingPassword && form.password.length < 6) {
+      setError("รหัสผ่านใหม่ควรยาวอย่างน้อย 6 ตัวอักษร")
+      return
+    }
+
+    if (isChangingPassword && form.password !== form.confirmPassword) {
+      setError("ยืนยันรหัสผ่านใหม่ไม่ตรงกัน")
+      return
+    }
+
+    if (isChangingEmail) {
+      const normalizedEmail = form.newEmail.trim().toLowerCase()
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(normalizedEmail)) {
+        setError("รูปแบบอีเมลใหม่ไม่ถูกต้อง")
+        return
+      }
+      if (normalizedEmail === form.email.trim().toLowerCase()) {
+        setError("อีเมลใหม่ต้องไม่ซ้ำกับอีเมลปัจจุบัน")
+        return
+      }
+      if (normalizedEmail !== form.confirmNewEmail.trim().toLowerCase()) {
+        setError("ยืนยันอีเมลใหม่ไม่ตรงกัน")
+        return
+      }
+    }
+
+    const body: UpdateRequestBody = {
+      name: form.name,
+      address: form.address,
+      telephone: form.telephone,
+      ...(isChangingPassword ? { password: form.password } : {}),
+      ...(isChangingEmail ? { email: form.newEmail.trim().toLowerCase() } : {}),
+    }
+
+    if (isChangingPassword || isChangingEmail) {
+      const changedItems = [
+        isChangingPassword ? "รหัสผ่าน" : null,
+        isChangingEmail ? "อีเมล" : null,
+      ]
+        .filter(Boolean)
+        .join(" และ ")
+
+      setPendingChangedItems(changedItems)
+      setPendingSaveBody(body)
+      setConfirmDialogOpen(true)
+      return
+    }
+
+    await submitProfileUpdate(body)
+  }
+
+  const handleConfirmSave = async () => {
+    if (!pendingSaveBody || saving) return
+    await submitProfileUpdate(pendingSaveBody)
   }
 
   const handleLogout = () => {
@@ -255,6 +339,32 @@ export default function ProfilePage() {
               />
             </div>
 
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <Input
+                id="email"
+                type="email"
+                label="อีเมลปัจจุบัน"
+                value={form.email}
+                readOnly
+              />
+              <Input
+                id="newEmail"
+                type="email"
+                label="อีเมลใหม่"
+                placeholder="เว้นว่างถ้ายังไม่ต้องการเปลี่ยน"
+                value={form.newEmail}
+                onChange={(event) => setForm((current) => ({ ...current, newEmail: event.target.value }))}
+              />
+              <Input
+                id="confirmNewEmail"
+                type="email"
+                label="ยืนยันอีเมลใหม่"
+                placeholder="กรอกอีเมลใหม่อีกครั้ง"
+                value={form.confirmNewEmail}
+                onChange={(event) => setForm((current) => ({ ...current, confirmNewEmail: event.target.value }))}
+              />
+            </div>
+
             <div className="mt-4">
               <Textarea
                 id="address"
@@ -266,14 +376,24 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-4">
-              <Input
-                id="password"
-                type="password"
-                label="รหัสผ่านใหม่"
-                placeholder="เว้นว่างถ้ายังไม่ต้องการเปลี่ยน"
-                value={form.password}
-                onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-              />
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  id="password"
+                  type="password"
+                  label="รหัสผ่านใหม่"
+                  placeholder="เว้นว่างถ้ายังไม่ต้องการเปลี่ยน"
+                  value={form.password}
+                  onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+                />
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  label="ยืนยันรหัสผ่านใหม่"
+                  placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                  value={form.confirmPassword}
+                  onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                />
+              </div>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -344,6 +464,36 @@ export default function ProfilePage() {
           </section>
         ) : null}
       </div>
+
+      {confirmDialogOpen ? (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[1.6rem] border border-gold/25 bg-[#0f1019] p-6 shadow-[0_28px_80px_rgba(4,3,12,0.55)] sm:p-7">
+            <div className="text-xs tracking-[0.18em] text-gold">ยืนยันการเปลี่ยนข้อมูลสำคัญ</div>
+            <h3 className="mt-3 text-2xl font-semibold text-foreground">
+              ยืนยันการเปลี่ยน{pendingChangedItems}
+            </h3>
+            <p className="mt-3 text-sm leading-7 text-muted-foreground">
+              เมื่อยืนยัน ระบบจะบันทึกข้อมูลใหม่ทันที กรุณาตรวจสอบความถูกต้องก่อนดำเนินการต่อ
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setConfirmDialogOpen(false)}
+                disabled={saving}
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                variant="gold"
+                onClick={handleConfirmSave}
+                loading={saving}
+              >
+                {saving ? "กำลังบันทึก..." : "ยืนยันและบันทึก"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   )
 }

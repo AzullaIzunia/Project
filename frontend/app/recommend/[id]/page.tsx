@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { ShoppingBag } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -26,6 +27,8 @@ export default function RecommendPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,8 +51,8 @@ export default function RecommendPage() {
         }
 
         setProducts(result.recommended_products || [])
-      } catch (err: any) {
-        setError(err.message || "โหลดสินค้าแนะนำไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดสินค้าแนะนำไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }
@@ -188,9 +191,12 @@ export default function RecommendPage() {
                   key={product.product_id}
                   className="mystic-card overflow-hidden p-4 sm:p-5"
                 >
-                  <img
+                  <Image
                     src={getProductImage(product)}
                     alt={product.product_name}
+                    width={800}
+                    height={560}
+                    unoptimized
                     className="h-56 w-full rounded-2xl border border-border object-cover"
                   />
                   <div className="mt-5">

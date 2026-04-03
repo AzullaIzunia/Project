@@ -14,23 +14,26 @@ type StoredResult = {
 
 export default function ResultPage() {
   const router = useRouter()
-  const [result, setResult] = useState<StoredResult | null>(null)
+  const [result] = useState<StoredResult | null>(() => {
+    if (typeof window === "undefined") return null
+    const raw = localStorage.getItem("result")
+    if (!raw) return null
+    try {
+      return JSON.parse(raw) as StoredResult
+    } catch {
+      return null
+    }
+  })
   const [showResult, setShowResult] = useState(false)
 
   useEffect(() => {
-    const raw = localStorage.getItem("result")
-    if (!raw) {
+    if (!result) {
       router.push("/choose")
       return
     }
-
-    try {
-      setResult(JSON.parse(raw))
-      window.setTimeout(() => setShowResult(true), 250)
-    } catch {
-      router.push("/choose")
-    }
-  }, [router])
+    const timeoutId = window.setTimeout(() => setShowResult(true), 250)
+    return () => window.clearTimeout(timeoutId)
+  }, [result, router])
 
   if (!result) {
     return (

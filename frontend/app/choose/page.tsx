@@ -1,8 +1,9 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { type CSSProperties, useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { apiUrl } from "@/lib/api"
 import { addToCart } from "@/lib/cart"
@@ -38,6 +39,10 @@ export default function ChoosePage() {
   const [result, setResult] = useState<ChosenResult | null>(null)
   const [recommendedProducts, setRecommendedProducts] = useState<RecommendedProduct[]>([])
   const [notice, setNotice] = useState("")
+  const [recommendFocus, setRecommendFocus] = useState(false)
+  const recommendationSectionRef = useRef<HTMLDivElement | null>(null)
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const storedDraw = localStorage.getItem("draw")
@@ -95,8 +100,8 @@ export default function ChoosePage() {
       }
 
       setRecommendedProducts(recommendData.recommended_products || [])
-    } catch (err: any) {
-      setError(err.message || "เกิดข้อผิดพลาด")
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "เกิดข้อผิดพลาด"))
     } finally {
       setLoading(false)
     }
@@ -114,6 +119,24 @@ export default function ChoosePage() {
     setTimeout(() => setNotice(""), 1800)
   }
 
+  useEffect(() => {
+    if (!result || loading) return
+    const scrollTimer = window.setTimeout(() => {
+      recommendationSectionRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      })
+      setRecommendFocus(true)
+    }, 280)
+    const clearFocusTimer = window.setTimeout(() => {
+      setRecommendFocus(false)
+    }, 1800)
+    return () => {
+      window.clearTimeout(scrollTimer)
+      window.clearTimeout(clearFocusTimer)
+    }
+  }, [result, loading])
+
   if (!data) {
     return (
       <main className="min-h-screen bg-background star-bg flex items-center justify-center px-4">
@@ -126,7 +149,7 @@ export default function ChoosePage() {
     <main className="min-h-screen bg-background star-bg">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <div className="max-w-5xl mx-auto">
-          <div className="mystic-card p-6 sm:p-8 lg:p-10">
+          <div className="mystic-card p-6 sm:p-8 lg:p-10" data-reveal>
             <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
               <div>
                 <p className="text-xs tracking-[0.18em] text-gold font-body">เลือกไพ่ของคุณ</p>
@@ -180,7 +203,7 @@ export default function ChoosePage() {
           </div>
         ) : null}
 
-        <section className="max-w-6xl mx-auto mt-10">
+        <section className="max-w-6xl mx-auto mt-10" data-reveal style={{ "--reveal-delay": "120ms" } as CSSProperties}>
           <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
             <div>
               <div className="text-xs tracking-[0.18em] text-gold font-body">ไพ่ที่ปรากฏต่อหน้า</div>
@@ -250,8 +273,8 @@ export default function ChoosePage() {
         ) : null}
 
         {result ? (
-          <section className="max-w-6xl mx-auto mt-12 grid xl:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
-            <div className="xl:sticky xl:top-24">
+          <section className="max-w-6xl mx-auto mt-12 grid xl:grid-cols-[0.9fr_1.1fr] gap-8 items-start" data-reveal style={{ "--reveal-delay": "80ms" } as CSSProperties}>
+            <div className="xl:sticky xl:top-24" data-reveal style={{ "--reveal-delay": "160ms" } as CSSProperties}>
               <div className="mystic-card p-6 sm:p-7">
                 <div className="text-xs tracking-[0.18em] text-gold font-body">ผลการเปิดไพ่ของคุณ</div>
                 <div className="mt-4 rounded-2xl border border-border bg-secondary/30 p-5">
@@ -276,7 +299,12 @@ export default function ChoosePage() {
               </div>
             </div>
 
-            <div className="mystic-card p-6 sm:p-7">
+            <div
+              ref={recommendationSectionRef}
+              className={`mystic-card p-6 sm:p-7 ${recommendFocus ? "recommend-focus" : ""}`}
+              data-reveal
+              style={{ "--reveal-delay": "230ms" } as CSSProperties}
+            >
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="text-xs tracking-[0.18em] text-gold font-body">สินค้าแนะนำจากคำทำนาย</div>
@@ -299,9 +327,12 @@ export default function ChoosePage() {
                       key={product.product_id}
                       className="rounded-2xl border border-border bg-background/45 p-4 flex flex-col"
                     >
-                      <img
+                      <Image
                         src={getProductImage(product)}
                         alt={product.product_name}
+                        width={800}
+                        height={480}
+                        unoptimized
                         className="w-full h-48 object-cover rounded-xl border border-border"
                       />
                       <h3 className="mt-4 text-xl font-serif font-semibold text-foreground">
@@ -332,7 +363,7 @@ export default function ChoosePage() {
                 <div className="mt-6 rounded-2xl border border-gold/20 bg-gold/5 p-4">
                   <p className="text-sm text-muted-foreground font-body leading-7">
                     ถ้าต้องการดูหน้าแนะนำแบบเต็มพร้อมปุ่มซื้อผ่านบัตรหรือ PromptPay
-                    สามารถเปิดต่อได้จากปุ่ม "เปิดหน้าสินค้าเพิ่มเติม"
+                    สามารถเปิดต่อได้จากปุ่ม &quot;เปิดหน้าสินค้าเพิ่มเติม&quot;
                   </p>
                 </div>
               ) : null}

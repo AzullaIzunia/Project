@@ -37,3 +37,4 @@ export const requireAdmin = (req: any, res: any, next: any) => {
   }
   next()
 }
+

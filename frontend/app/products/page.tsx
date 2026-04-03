@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -60,6 +61,8 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -89,8 +92,8 @@ export default function ProductsPage() {
 
         setProducts(payload.data || [])
         setTotalPages(payload.pagination?.totalPages || 1)
-      } catch (err: any) {
-        setError(err.message || "โหลดสินค้าไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดสินค้าไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }
@@ -258,9 +261,12 @@ export default function ProductsPage() {
                       className="overflow-hidden rounded-[1.75rem] border border-border bg-card/80 shadow-[0_18px_48px_rgba(4,3,12,0.22)] transition-transform hover:-translate-y-1"
                     >
                       <Link href={`/products/${product.product_id}`} className="no-underline">
-                        <img
+                        <Image
                           src={getProductImage(product)}
                           alt={product.product_name}
+                          width={800}
+                          height={800}
+                          unoptimized
                           className="aspect-square w-full object-cover"
                         />
                       </Link>

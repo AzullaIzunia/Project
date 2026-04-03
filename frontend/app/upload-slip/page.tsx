@@ -10,6 +10,12 @@ import ProtectedGate from "@/components/protected-gate"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { formatPrice } from "@/lib/display"
 
+type UploadSlipOrder = {
+  order_id: number
+  total_price: number
+  latestOrderStatus: string
+}
+
 export default function UploadSlip() {
   const router = useRouter()
   const [orderId, setOrderId] = useState("")
@@ -17,11 +23,13 @@ export default function UploadSlip() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
-  const [order, setOrder] = useState<any>(null)
+  const [order, setOrder] = useState<UploadSlipOrder | null>(null)
   const [isAuthenticated] = useState(() => {
     if (typeof window === "undefined") return false
     return Boolean(localStorage.getItem("token"))
   })
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -55,8 +63,8 @@ export default function UploadSlip() {
         }
 
         setOrder(data)
-      } catch (err: any) {
-        setError(err.message || "โหลดข้อมูลออเดอร์ไม่สำเร็จ")
+      } catch (error: unknown) {
+        setError(getErrorMessage(error, "โหลดข้อมูลออเดอร์ไม่สำเร็จ"))
       } finally {
         setLoading(false)
       }

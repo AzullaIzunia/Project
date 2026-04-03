@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { Package } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { apiUrl } from "@/lib/api"
 import { Button } from "@/components/ui/button"
@@ -38,8 +38,10 @@ export default function OrdersPage() {
     if (typeof window === "undefined") return false
     return Boolean(localStorage.getItem("token"))
   })
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback
 
-  const fetchOrders = async (authToken: string) => {
+  const fetchOrders = useCallback(async (authToken: string) => {
     setLoading(true)
     setError("")
 
@@ -57,12 +59,12 @@ export default function OrdersPage() {
       }
 
       setOrders(data)
-    } catch (err: any) {
-      setError(err.message || "โหลดรายการออเดอร์ไม่สำเร็จ")
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "โหลดรายการออเดอร์ไม่สำเร็จ"))
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token")
@@ -74,7 +76,7 @@ export default function OrdersPage() {
 
     setToken(storedToken)
     fetchOrders(storedToken)
-  }, [router])
+  }, [fetchOrders])
 
   const cancelOrder = async (orderId: number) => {
     setError("")
