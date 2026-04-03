@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { apiUrl } from "@/lib/api"
 import { addToCart } from "@/lib/cart"
@@ -39,7 +39,6 @@ export default function ChoosePage() {
   const [result, setResult] = useState<ChosenResult | null>(null)
   const [recommendedProducts, setRecommendedProducts] = useState<RecommendedProduct[]>([])
   const [notice, setNotice] = useState("")
-  const [recommendFocus, setRecommendFocus] = useState(false)
   const recommendationSectionRef = useRef<HTMLDivElement | null>(null)
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback
@@ -126,14 +125,9 @@ export default function ChoosePage() {
         behavior: "smooth",
         block: "start",
       })
-      setRecommendFocus(true)
     }, 280)
-    const clearFocusTimer = window.setTimeout(() => {
-      setRecommendFocus(false)
-    }, 1800)
     return () => {
       window.clearTimeout(scrollTimer)
-      window.clearTimeout(clearFocusTimer)
     }
   }, [result, loading])
 
@@ -149,7 +143,7 @@ export default function ChoosePage() {
     <main className="min-h-screen bg-background star-bg">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
         <div className="max-w-5xl mx-auto">
-          <div className="mystic-card p-6 sm:p-8 lg:p-10" data-reveal>
+          <div className="mystic-card p-6 sm:p-8 lg:p-10">
             <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8 items-center">
               <div>
                 <p className="text-xs tracking-[0.18em] text-gold font-body">เลือกไพ่ของคุณ</p>
@@ -203,7 +197,7 @@ export default function ChoosePage() {
           </div>
         ) : null}
 
-        <section className="max-w-6xl mx-auto mt-10" data-reveal style={{ "--reveal-delay": "120ms" } as CSSProperties}>
+        <section className="max-w-6xl mx-auto mt-10">
           <div className="flex items-center justify-between gap-4 flex-wrap mb-5">
             <div>
               <div className="text-xs tracking-[0.18em] text-gold font-body">ไพ่ที่ปรากฏต่อหน้า</div>
@@ -273,8 +267,8 @@ export default function ChoosePage() {
         ) : null}
 
         {result ? (
-          <section className="max-w-6xl mx-auto mt-12 grid xl:grid-cols-[0.9fr_1.1fr] gap-8 items-start" data-reveal style={{ "--reveal-delay": "80ms" } as CSSProperties}>
-            <div className="xl:sticky xl:top-24" data-reveal style={{ "--reveal-delay": "160ms" } as CSSProperties}>
+          <section className="max-w-6xl mx-auto mt-12 grid xl:grid-cols-[0.9fr_1.1fr] gap-8 items-start">
+            <div className="xl:sticky xl:top-24">
               <div className="mystic-card p-6 sm:p-7">
                 <div className="text-xs tracking-[0.18em] text-gold font-body">ผลการเปิดไพ่ของคุณ</div>
                 <div className="mt-4 rounded-2xl border border-border bg-secondary/30 p-5">
@@ -301,9 +295,7 @@ export default function ChoosePage() {
 
             <div
               ref={recommendationSectionRef}
-              className={`mystic-card p-6 sm:p-7 ${recommendFocus ? "recommend-focus" : ""}`}
-              data-reveal
-              style={{ "--reveal-delay": "230ms" } as CSSProperties}
+              className="mystic-card p-6 sm:p-7"
             >
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
